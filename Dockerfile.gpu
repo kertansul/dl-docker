@@ -2,7 +2,7 @@ FROM nvidia/cuda:8.0-cudnn5-devel
 
 MAINTAINER Shawn Chen <kertansul@gmail.com>
 
-ARG THEANO_VERSION=rel-0.8.2
+# ARG THEANO_VERSION= (install bleeding-edge Theano)
 ARG TENSORFLOW_VERSION=0.11.0rc2
 ARG TENSORFLOW_ARCH=gpu
 ARG KERAS_VERSION=1.0.3
@@ -141,7 +141,7 @@ RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 
 
 # Install Theano and set up Theano config (.theanorc) for CUDA and OpenBLAS
-RUN pip --no-cache-dir install git+git://github.com/Theano/Theano.git@${THEANO_VERSION} && \
+RUN pip --no-cache-dir install git+git://github.com/Theano/Theano.git && \
 	\
 	echo "[global]\ndevice=gpu\nfloatX=float32\noptimizer_including=cudnn\nmode=FAST_RUN \
 		\n[lib]\ncnmem=0.95 \
