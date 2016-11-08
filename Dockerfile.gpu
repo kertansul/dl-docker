@@ -16,13 +16,19 @@ ARG CAFFE_VERSION=caffe-0.15
 #	nvcc -V && \
 #	echo -e "\n\nBuilding your Deep Learning Docker Image...\n"
 
+# Add repository for g++-5 [Shawn] we need this for caffe-SSD
+RUN apt-get update 1>/dev/null && apt-get upgrade -y -q --no-install-recommends && \
+    apt-get install -y --no-install-recommends software-properties-common
+RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
+
 # Install some dependencies
 RUN apt-get update && apt-get install -y \
 		bc \
 		build-essential \
 		cmake \
 		curl \
-		g++ \
+		gcc-5 \
+		g++-5 \
 		gfortran \
 		git \
 		libffi-dev \
