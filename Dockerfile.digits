@@ -5,7 +5,7 @@ ARG CAFFE_VERSION=caffe-0.15
 ARG DIGITS_VERSION=digits-5.0
 
 ###### Install some dependencies with Deb packages #####
-RUN apt-get update && apt-get install --no-install-recommends \
+RUN apt-get update && apt-key update && apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
         gfortran \
@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install --no-install-recommends \
         libhdf5-serial-dev \
         libleveldb-dev \
         liblmdb-dev \
+	libopenblas-dev \
         libopencv-dev \
         libprotobuf-dev \
         libsnappy-dev \
@@ -37,13 +38,15 @@ RUN apt-get update && apt-get install --no-install-recommends \
         python-scipy \
         python-skimage \
         python-sklearn \
-        software-properties-common
-
+        software-properties-common \
+	&& \
+# Link BLAS library to use OpenBLAS using the alternatives mechanism (https://www.scipy.org/scipylib/building/linux.html#debian-ubuntu)
+	update-alternatives --set libblas.so.3 /usr/lib/openblas-base/libblas.so.3
 
 ##### Build Caffe #####
 
 # Download source
-ENV CAFFE_ROOT=~/caffe
+ENV CAFFE_ROOT=/root/caffe
 RUN git clone -b ${CAFFE_VERSION} https://github.com/NVIDIA/caffe.git $CAFFE_ROOT
 
 # Install Python Packages
@@ -52,29 +55,35 @@ RUN pip install -r $CAFFE_ROOT/python/requirements.txt && \
     
 # Build
 RUN cd $CAFFE_ROOT && \
-    mkdir build && \
-    cd build && \
-    cmake .. && \
-    make --jobs=8
+    mkdir build && cd build && \
+    cmake -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="52 60" -DCUDA_ARCH_PTX="60" -DUSE_CUDNN=1 -DBLAS=Open .. && \
+    make -j8 all && \
+    make install 
     
-    
+# Setup Environment
+ENV PYCAFFE_ROOT=$CAFFE_ROOT/python
+ENV PYTHONPATH=$PYCAFFE_ROOT:$PYTHONPATH \
+	PATH=$CAFFE_ROOT/build/tools:$PYCAFFE_ROOT:$PATH
+
+RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
+
 ##### Build Torch #####
 
 # Basic Install
-ENV TORCH_ROOT=~/torch
-ENV PATH=$PATH:~/torch/install/bin
+ENV TORCH_ROOT=/root/torch
+ENV PATH=$PATH:/root/torch/install/bin
 
 RUN git clone https://github.com/torch/distro.git $TORCH_ROOT --recursive && \
     cd $TORCH_ROOT && \
     ./install-deps && \
     ./install.sh -b && \
-    source ~/.bashrc
+    bash ~/.bashrc
 
 # Extra dependencies
 RUN luarocks install tds && \
     luarocks install "https://raw.github.com/deepmind/torch-hdf5/master/hdf5-0-0.rockspec" && \
     luarocks install "https://raw.github.com/Neopallium/lua-pb/master/lua-pb-scm-0.rockspec" && \
-    luarocks install lightningmdb 0.9.18.1-1 LMDB_INCDIR=/usr/include LMDB_LIBDIR=/usr/lib/x86_64-linux-gnu && \
+    luarocks install lightningmdb 0.9.18.1-1 LMDB_INCDIR=/usr/include LMDB_LIBDIR=/usr/lib/x86_64-linux-gnu
 # If you have installed NCCL
 RUN luarocks install "https://raw.githubusercontent.com/ngimel/nccl.torch/master/nccl-scm-1.rockspec"
 
@@ -82,7 +91,7 @@ RUN luarocks install "https://raw.githubusercontent.com/ngimel/nccl.torch/master
 ##### Build Digits #####
 
 # Download source
-ENV DIGITS_ROOT=~/digits
+ENV DIGITS_ROOT=/root/digits
 RUN git clone -b ${DIGITS_VERSION} https://github.com/NVIDIA/DIGITS.git $DIGITS_ROOT
 
 # Install Python Packages
@@ -92,4 +101,5 @@ RUN pip install -r $DIGITS_ROOT/requirements.txt
 RUN pip install -e $DIGITS_ROOT
 
 # Starting the server
-RUN ./digits-devserver
+WORKDIR /root/digits
+ENTRYPOINT ["./digits-devserver"]
