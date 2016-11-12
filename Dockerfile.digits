@@ -4,10 +4,8 @@ MAINTAINER Shawn Chen <kertansul@gmail.com>
 ARG CAFFE_VERSION=caffe-0.15
 ARG DIGITS_VERSION=digits-5.0
 
-
 ###### Install some dependencies with Deb packages #####
-
-RUN apt-get install --no-install-recommends \
+RUN apt-get update && apt-get install --no-install-recommends \
         build-essential \
         cmake \
         gfortran \
@@ -45,7 +43,7 @@ RUN apt-get install --no-install-recommends \
 ##### Build Caffe #####
 
 # Download source
-ENV CAFFE_ROOT=~/caffe  # example location - can be customized
+ENV CAFFE_ROOT=~/caffe
 RUN git clone -b ${CAFFE_VERSION} https://github.com/NVIDIA/caffe.git $CAFFE_ROOT
 
 # Install Python Packages
@@ -63,7 +61,7 @@ RUN cd $CAFFE_ROOT && \
 ##### Build Torch #####
 
 # Basic Install
-ENV TORCH_ROOT=~/torch  # example location - can be customized
+ENV TORCH_ROOT=~/torch
 ENV PATH=$PATH:~/torch/install/bin
 
 RUN git clone https://github.com/torch/distro.git $TORCH_ROOT --recursive && \
@@ -84,7 +82,7 @@ RUN luarocks install "https://raw.githubusercontent.com/ngimel/nccl.torch/master
 ##### Build Digits #####
 
 # Download source
-ENV DIGITS_ROOT=~/digits # example location - can be customized
+ENV DIGITS_ROOT=~/digits
 RUN git clone -b ${DIGITS_VERSION} https://github.com/NVIDIA/DIGITS.git $DIGITS_ROOT
 
 # Install Python Packages
@@ -93,5 +91,5 @@ RUN pip install -r $DIGITS_ROOT/requirements.txt
 # [Optional] Enable support for plug-ins
 RUN pip install -e $DIGITS_ROOT
 
-Starting the server
+# Starting the server
 RUN ./digits-devserver
