@@ -2,6 +2,7 @@ FROM nvidia/cuda:8.0-cudnn5-devel
 MAINTAINER Shawn Chen <kertansul@gmail.com>
 
 ARG CAFFE_VERSION=caffe-0.15
+ARG CAFFE_TAG=v0.15.14
 ARG DIGITS_VERSION=digits-5.0
 
 ###### Install some dependencies with Deb packages #####
@@ -47,7 +48,9 @@ RUN apt-get update && apt-key update && apt-get install -y --no-install-recommen
 
 # Download source
 ENV CAFFE_ROOT=/root/caffe
-RUN git clone -b ${CAFFE_VERSION} https://github.com/NVIDIA/caffe.git $CAFFE_ROOT
+RUN git clone -b ${CAFFE_VERSION} https://github.com/NVIDIA/caffe.git $CAFFE_ROOT && \
+    cd $CAFFE_ROOT && \
+    git checkout ${CAFFE_TAG}
 
 # Install Python Packages
 RUN pip install -r $CAFFE_ROOT/python/requirements.txt && \
