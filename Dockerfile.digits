@@ -39,7 +39,9 @@ RUN apt-get update && apt-key update && apt-get install -y --no-install-recommen
         python-scipy \
         python-skimage \
         python-sklearn \
+	python-tk \
         software-properties-common \
+	vim \
 	&& \
 # Link BLAS library to use OpenBLAS using the alternatives mechanism (https://www.scipy.org/scipylib/building/linux.html#debian-ubuntu)
 	update-alternatives --set libblas.so.3 /usr/lib/openblas-base/libblas.so.3
@@ -105,4 +107,4 @@ RUN pip install -e $DIGITS_ROOT
 
 # Starting the server
 WORKDIR /root/digits
-ENTRYPOINT ["./digits-devserver"]
+# ENTRYPOINT ["./digits-devserver"]
