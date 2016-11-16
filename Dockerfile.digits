@@ -105,6 +105,10 @@ RUN pip install -r $DIGITS_ROOT/requirements.txt
 # [Optional] Enable support for plug-ins
 RUN pip install -e $DIGITS_ROOT
 
+# Fix 'pyplot' error while viewing segmentation data https://github.com/NVIDIA/DIGITS/issues/1117
+RUN mkdir -p ~/.config/matplotlib && \
+    echo "backend:agg" > ~/.config/matplotlib/matplotlibrc
+
 # Starting the server
 WORKDIR /root/digits
 # ENTRYPOINT ["./digits-devserver"]
