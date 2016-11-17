@@ -201,6 +201,10 @@ Run apt-get install python-opencv
 # [Shawn] Install mpld3 for interacting charts on ipython notebook
 RUN pip --no-cache-dir install mpld3
 
+# [Shawn] Install t-SNE tutorial dependencies: scikit-learn 0.18.1, seaborn, and moviepy
+# https://github.com/oreillymedia/t-SNE-tutorial
+RUN pip --no-cache-dir install -U scikit-learn seaborn moviepy
+
 # Set up notebook config
 COPY jupyter_notebook_config.py /root/.jupyter/
 
@@ -211,4 +215,4 @@ COPY run_jupyter.sh /root/
 EXPOSE 6006 8888
 
 WORKDIR "/root"
-CMD ["/bin/bash"]
+# CMD ["/bin/bash"]
