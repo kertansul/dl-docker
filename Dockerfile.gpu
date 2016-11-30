@@ -102,8 +102,8 @@ RUN pip --no-cache-dir install --upgrade ipython && \
 		&& \
 	python -m ipykernel.kernelspec
 
-# [Shawn] Update numpy to latest version
-RUN pip install numpy --upgrade
+# [Shawn] Update numpy and pillow to latest version
+RUN pip install --upgrade numpy Pillow
 
 # Install TensorFlow
 RUN pip --no-cache-dir install \
