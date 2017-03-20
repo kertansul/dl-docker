@@ -1,25 +1,15 @@
-FROM nvidia/cuda:8.0-cudnn5-devel
+FROM nvidia/cuda:8.0-cudnn5-devel-ubuntu14.04
 
 MAINTAINER Shawn Chen <kertansul@gmail.com>
 
-# ARG THEANO_VERSION= (install bleeding-edge Theano)
-ARG TENSORFLOW_VERSION=0.11.0rc2
+ARG THEANO_VERSION=rel-0.9.0rc4
+ARG TENSORFLOW_VERSION=1.0.1-cp27-none
 ARG TENSORFLOW_ARCH=gpu
-ARG KERAS_VERSION=1.0.3
+ARG KERAS_VERSION=2.0.1
 ARG LASAGNE_VERSION=v0.1
 ARG TORCH_VERSION=latest
 ARG CAFFE_VERSION=caffe-0.15
 
-#RUN echo -e "\n**********************\nNVIDIA Driver Version\n**********************\n" && \
-#	cat /proc/driver/nvidia/version && \
-#	echo -e "\n**********************\nCUDA Version\n**********************\n" && \
-#	nvcc -V && \
-#	echo -e "\n\nBuilding your Deep Learning Docker Image...\n"
-
-# Add repository for g++-5 [Shawn] we need this for caffe-SSD
-# RUN apt-get update 1>/dev/null && apt-get upgrade -y -q --no-install-recommends && \
-#     apt-get install -y --no-install-recommends software-properties-common
-# RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 # Install some dependencies
 RUN apt-get update && apt-get install -y \
@@ -106,9 +96,12 @@ RUN pip --no-cache-dir install --upgrade ipython && \
 RUN pip install --upgrade numpy Pillow
 
 # Install TensorFlow
-RUN pip --no-cache-dir install \
-	https://storage.googleapis.com/tensorflow/linux/${TENSORFLOW_ARCH}/tensorflow-${TENSORFLOW_VERSION}-cp27-none-linux_x86_64.whl
+RUN pip --no-cache-dir install --upgrade \
+	https://storage.googleapis.com/tensorflow/linux/${TENSORFLOW_ARCH}/tensorflow_${TENSORFLOW_ARCH}-${TENSORFLOW_VERSION}-linux_x86_64.whl
 
+# Enable GPU Support for TensorFlow
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64"
+ENV CUDA_HOME=/usr/local/cuda
 
 # Install dependencies for Caffe
 RUN apt-get update && apt-get install -y \
@@ -146,10 +139,10 @@ RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 
 
 # Install Theano and set up Theano config (.theanorc) for CUDA and OpenBLAS
-RUN pip --no-cache-dir install git+git://github.com/Theano/Theano.git && \
+RUN pip --no-cache-dir install git+git://github.com/Theano/Theano.git@${THEANO_VERSION} && \
 	\
 	echo "[global]\ndevice=gpu\nfloatX=float32\noptimizer_including=cudnn\nmode=FAST_RUN \
-		\n[lib]\ncnmem=0.95 \
+		\n[lib]\ncnmem=0.3 \
 		\n[nvcc]\nfastmath=True \
 		\n[blas]\nldflag = -L/usr/lib/openblas-base -lopenblas \
 		\n[DebugMode]\ncheck_finite=1" \
@@ -158,6 +151,8 @@ RUN pip --no-cache-dir install git+git://github.com/Theano/Theano.git && \
 
 # Install Keras
 RUN pip --no-cache-dir install git+git://github.com/fchollet/keras.git@${KERAS_VERSION}
+# Set Keras backend to theano by default
+ENV KERAS_BACKEND=theano
 
 
 # Install Lasagne
@@ -168,34 +163,33 @@ RUN pip --no-cache-dir install git+git://github.com/Lasagne/Lasagne.git@${LASAGN
 RUN git clone https://github.com/torch/distro.git /root/torch --recursive && \
 	cd /root/torch && \
 	bash install-deps && \
-	yes no | ./install.sh
+	./install.sh
 
 # Export the LUA evironment variables manually
 ENV LUA_PATH='/root/.luarocks/share/lua/5.1/?.lua;/root/.luarocks/share/lua/5.1/?/init.lua;/root/torch/install/share/lua/5.1/?.lua;/root/torch/install/share/lua/5.1/?/init.lua;./?.lua;/root/torch/install/share/luajit-2.1.0-beta1/?.lua;/usr/local/share/lua/5.1/?.lua;/usr/local/share/lua/5.1/?/init.lua' \
-	LUA_CPATH='/root/.luarocks/lib/lua/5.1/?.so;/root/torch/install/lib/lua/5.1/?.so;./?.so;/usr/local/lib/lua/5.1/?.so;/usr/local/lib/lua/5.1/loadall.so' \
-	PATH=/root/torch/install/bin:$PATH \
-	LD_LIBRARY_PATH=/root/torch/install/lib:$LD_LIBRARY_PATH \
-	DYLD_LIBRARY_PATH=/root/torch/install/lib:$DYLD_LIBRARY_PATH
+    LUA_CPATH='/root/.luarocks/lib/lua/5.1/?.so;/root/torch/install/lib/lua/5.1/?.so;./?.so;/usr/local/lib/lua/5.1/?.so;/usr/local/lib/lua/5.1/loadall.so' \
+    PATH=/root/torch/install/bin:$PATH \
+    LD_LIBRARY_PATH=/root/torch/install/lib:$LD_LIBRARY_PATH \
+    DYLD_LIBRARY_PATH=/root/torch/install/lib:$DYLD_LIBRARY_PATH
 ENV LUA_CPATH='/root/torch/install/lib/?.so;'$LUA_CPATH
 
 # Install the latest versions of nn, cutorch, cunn, cuDNN bindings and iTorch
-RUN luarocks install nn && \
-	luarocks install cutorch && \
-	luarocks install cunn && \
-	\
-	cd /root && git clone https://github.com/soumith/cudnn.torch.git && cd cudnn.torch && \
-	git checkout R4 && \
-	luarocks make && \
-	\
-	cd /root && git clone https://github.com/facebook/iTorch.git && \
+RUN luarocks install image && \
+    luarocks list
+	
+RUN	cd /root && git clone https://github.com/soumith/cudnn.torch.git && \
+    cd cudnn.torch && \
+	luarocks make
+	
+RUN	cd /root && git clone https://github.com/facebook/iTorch.git && \
 	cd iTorch && \
 	luarocks make
 
 # [Shawn] Install GraphViz for visualizing Caffe networks
 RUN apt-get install -y GraphViz
 RUN pip --no-cache-dir install GraphViz
-# [Shawn] Install pydot while using nvidia Caffe
-RUN pip --no-cache-dir install pydot
+# [Shawn] Install pydot while using nvidia Caffe, version will be fixed at 1.1.0 for Theano
+RUN pip --no-cache-dir install pydot==1.1.0
 # [Shawn] Install OpenCV
 Run apt-get install python-opencv
 # [Shawn] Install mpld3 for interacting charts on ipython notebook
@@ -203,6 +197,7 @@ RUN pip --no-cache-dir install mpld3
 
 # [Shawn] Install t-SNE tutorial dependencies: scikit-learn 0.18.1, seaborn, and moviepy
 # https://github.com/oreillymedia/t-SNE-tutorial
+RUN pip install --upgrade html5lib==1.0b8
 RUN pip --no-cache-dir install -U scikit-learn seaborn moviepy
 
 # Set up notebook config
@@ -210,6 +205,7 @@ COPY jupyter_notebook_config.py /root/.jupyter/
 
 # Jupyter has issues with being run directly: https://github.com/ipython/ipython/issues/7062
 COPY run_jupyter.sh /root/
+
 
 # Expose Ports for TensorBoard (6006), Ipython (8888)
 EXPOSE 6006 8888
