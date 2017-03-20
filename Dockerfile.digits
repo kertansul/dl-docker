@@ -1,8 +1,7 @@
-FROM nvidia/cuda:8.0-cudnn5-devel
+FROM nvidia/cuda:8.0-cudnn5-devel-ubuntu14.04
 MAINTAINER Shawn Chen <kertansul@gmail.com>
 
 ARG CAFFE_VERSION=caffe-0.15
-ARG CAFFE_TAG=v0.15.14
 ARG DIGITS_VERSION=digits-5.0
 
 ###### Install some dependencies with Deb packages #####
@@ -51,12 +50,14 @@ RUN apt-get update && apt-key update && apt-get install -y --no-install-recommen
 # Download source
 ENV CAFFE_ROOT=/root/caffe
 RUN git clone -b ${CAFFE_VERSION} https://github.com/NVIDIA/caffe.git $CAFFE_ROOT && \
-    cd $CAFFE_ROOT && \
-    git checkout ${CAFFE_TAG}
+    cd $CAFFE_ROOT
+
+# Fix "No module named packaging.verion" issue
+# http://stackoverflow.com/questions/42286447/importerror-no-module-named-packaging-version
+RUN pip install -U packaging appdirs
 
 # Install Python Packages
-RUN pip install -r $CAFFE_ROOT/python/requirements.txt && \
-    cat $CAFFE_ROOT/python/requirements.txt | xargs -n1 sudo pip install
+RUN pip install -r $CAFFE_ROOT/python/requirements.txt
     
 # Build
 RUN cd $CAFFE_ROOT && \
@@ -99,6 +100,10 @@ RUN luarocks install "https://raw.githubusercontent.com/ngimel/nccl.torch/master
 ENV DIGITS_ROOT=/root/digits
 RUN git clone -b ${DIGITS_VERSION} https://github.com/NVIDIA/DIGITS.git $DIGITS_ROOT
 
+# Fix the setuptools module version to 33.1.1
+# http://stackoverflow.com/questions/42029545/pip-is-error-typeerror-call-takes-exactly-2-arguments-1-given
+RUN pip install setuptools==33.1.1
+
 # Install Python Packages
 RUN pip install -r $DIGITS_ROOT/requirements.txt
 
@@ -108,6 +113,12 @@ RUN pip install -e $DIGITS_ROOT
 # Fix 'pyplot' error while viewing segmentation data https://github.com/NVIDIA/DIGITS/issues/1117
 RUN mkdir -p ~/.config/matplotlib && \
     echo "backend:agg" > ~/.config/matplotlib/matplotlibrc
+
+# Setup Environment
+VOLUME /data
+VOLUME /jobs
+ENV DIGITS_JOBS_DIR=/jobs
+ENV DIGITS_LOGFILE_FILENAME=/jobs/digits.log
 
 # Starting the server
 WORKDIR /root/digits
