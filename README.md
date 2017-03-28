@@ -6,13 +6,13 @@ If you are not familiar with Docker, but would still like an all-in-one solution
 ## Specs
 This is what you get out of the box when you create a container with the provided image/Dockerfile:
 * Ubuntu 14.04
-* [CUDA 7.5](https://developer.nvidia.com/cuda-toolkit) (GPU version only)
-* [cuDNN v4](https://developer.nvidia.com/cudnn) (GPU version only)
-* [Tensorflow](https://www.tensorflow.org/)
-* [Caffe](http://caffe.berkeleyvision.org/)
-* [Theano](http://deeplearning.net/software/theano/)
-* [Keras](http://keras.io/)
-* [Lasagne](http://lasagne.readthedocs.io/en/latest/)
+* [CUDA 8.0](https://developer.nvidia.com/cuda-toolkit) (GPU version only)
+* [cuDNN v5](https://developer.nvidia.com/cudnn) (GPU version only)
+* [Tensorflow v1.0.1](https://www.tensorflow.org/)
+* [NVIDIA Caffe v0.15](https://github.com/NVIDIA/nvidia-docker/wiki/NVIDIA-Caffe)
+* [Theano rel-0.9.0rc4](http://deeplearning.net/software/theano/)
+* [Keras v2.0.1](http://keras.io/)
+* [Lasagne v0.1](http://lasagne.readthedocs.io/en/latest/)
 * [Torch](http://torch.ch/) (includes nn, cutorch, cunn and cuDNN bindings)
 * [iPython/Jupyter Notebook](http://jupyter.org/) (including iTorch kernel)
 * [Numpy](http://www.numpy.org/), [SciPy](https://www.scipy.org/), [Pandas](http://pandas.pydata.org/), [Scikit Learn](http://scikit-learn.org/), [Matplotlib](http://matplotlib.org/)
@@ -28,47 +28,27 @@ This is what you get out of the box when you create a container with the provide
 
 ### Obtaining the Docker image
 You have 2 options to obtain the Docker image
-#### Option 1: Download the Docker image from Docker Hub
-Docker Hub is a cloud based repository of pre-built images. You can download the image directly from here, which should be _much faster_ than building it locally (a few minutes, based on your internet speed). Here is the automated build page for `dl-docker`: [https://hub.docker.com/r/floydhub/dl-docker/](https://hub.docker.com/r/floydhub/dl-docker/). The image is automatically built based on the `Dockerfile` in the Github repo.
 
-**CPU Version**
-```bash
-docker pull floydhub/dl-docker:cpu
-```
-
-**GPU Version**
-An automated build for the GPU image is not available currently due to timeout restrictions in Docker's automated build process. I'll look into solving this in the future, but for now you'll have to build the GPU version locally using Option 2 below.
-
-#### Option 2: Build the Docker image locally
+#### Build the Docker image locally
 Alternatively, you can build the images locally. Also, since the GPU version is not available in Docker Hub at the moment, you'll have to follow this if you want to GPU version. Note that this will take an hour or two depending on your machine since it compiles a few libraries from scratch.
 
 ```bash
-git clone https://github.com/saiprashanths/dl-docker.git
+git clone https://github.com/kertansul/dl-docker.git
 cd dl-docker
 ```	
 
-**CPU Version**
-```bash
-docker build -t floydhub/dl-docker:cpu -f Dockerfile.cpu .
-```
-
 **GPU Version**
 ```bash
-docker build -t floydhub/dl-docker:gpu -f Dockerfile.gpu .
+docker build -t kertansul/dl-docker:gpu -f Dockerfile.gpu .
 ```
 This will build a Docker image named `dl-docker` and tagged either `cpu` or `gpu` depending on the tag your specify. Also note that the appropriate `Dockerfile.<architecture>` has to be used.
 
 ## Running the Docker image as a Container
 Once we've built the image, we have all the frameworks we need installed in it. We can now spin up one or more containers using this image, and you should be ready to [go deeper](http://imgur.com/gallery/BvuWRxq)
-
-**CPU Version**
-```bash
-docker run -it -p 8888:8888 -p 6006:6006 -v /sharedfolder:/root/sharedfolder floydhub/dl-docker:cpu bash
-```
 	
 **GPU Version**
 ```bash
-nvidia-docker run -it -p 8888:8888 -p 6006:6006 -v /sharedfolder:/root/sharedfolder floydhub/dl-docker:gpu bash
+nvidia-docker run -it -p 8888:8888 -p 6006:6006 -v /sharedfolder:/root/sharedfolder kertansul/dl-docker:gpu bash
 ```
 Note the use of `nvidia-docker` rather than just `docker`
 
