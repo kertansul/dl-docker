@@ -92,8 +92,9 @@ RUN pip --no-cache-dir install --upgrade ipython && \
 		&& \
 	python -m ipykernel.kernelspec
 
-# [Shawn] Update numpy and pillow to latest version
-RUN pip install --upgrade numpy Pillow
+# [Shawn] Update pillow to latest version
+# numpy is fixed at 1.11.0 based on https://github.com/rbgirshick/py-faster-rcnn/issues/481
+RUN pip install --upgrade Pillow numpy==1.11.0
 
 # Install TensorFlow
 RUN pip --no-cache-dir install --upgrade \
