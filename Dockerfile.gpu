@@ -106,7 +106,7 @@ ENV CUDA_HOME=/usr/local/cuda
 
 # Install dependencies for Caffe
 RUN apt-get update && apt-get install -y \
-		libboost-all-dev \
+		libboost1.55-all-dev \
 		libgflags-dev \
 		libgoogle-glog-dev \
 		libhdf5-serial-dev \
