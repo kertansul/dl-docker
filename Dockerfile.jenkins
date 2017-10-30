@@ -9,7 +9,4 @@ RUN apt-get install -y sudo \
                        vim \
                        rsync
 
-# drop back to the regular jenkins user - good practice
-USER jenkins
-
 ENTRYPOINT ./usr/local/bin/jenkins.sh && /bin/bash
