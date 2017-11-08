@@ -1,8 +1,8 @@
-FROM nvidia/cuda:8.0-cudnn5-devel-ubuntu14.04
+FROM nvidia/cuda:8.0-cudnn6-devel-ubuntu14.04
 MAINTAINER Shawn Chen <kertansul@gmail.com>
 
 ARG CAFFE_VERSION=caffe-0.15
-ARG DIGITS_VERSION=digits-5.0
+ARG DIGITS_VERSION=digits-6.0
 
 ###### Install some dependencies with Deb packages #####
 RUN apt-get update && apt-key update && apt-get install -y --no-install-recommends \
