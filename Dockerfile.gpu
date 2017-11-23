@@ -2,7 +2,7 @@ FROM nvidia/cuda:8.0-cudnn6-devel-ubuntu14.04
 
 MAINTAINER Shawn Chen <kertansul@gmail.com>
 
-ARG TENSORFLOW_VERSION=1.3.0-cp27-none
+ARG TENSORFLOW_VERSION=1.4.0-cp27-none
 ARG TENSORFLOW_ARCH=gpu
 ARG CAFFE_VERSION=caffe-0.16
 ARG PYTORCH_VERSION=torch-0.2.0
