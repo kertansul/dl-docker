@@ -193,7 +193,7 @@ EXPOSE 6006 8888
 
 # Install dependencies for Caffe
 RUN apt-get update && apt-get install -y \
-		libboost1.55-all-dev \
+		libboost-all-dev \
 		libgflags-dev \
 		libgoogle-glog-dev \
 		libhdf5-serial-dev \
@@ -249,6 +249,9 @@ RUN pip --no-cache-dir install GraphViz
 RUN apt-get install python-opencv
 # Install mpld3 for interacting charts on ipython notebook
 RUN pip --no-cache-dir install mpld3
+# Install scikit-image and upgrade pandas
+RUN pip install scikit-image
+RUN pip install -U pandas
 
 # Install t-SNE tutorial dependencies: scikit-learn 0.18.1, seaborn, and moviepy
 # https://github.com/oreillymedia/t-SNE-tutorial
