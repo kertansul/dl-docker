@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+FROM nvidia/cuda:8.0-cudnn6-devel-ubuntu16.04
 
 MAINTAINER Shawn Chen <kertansul@gmail.com>
 
@@ -7,7 +7,7 @@ MAINTAINER Shawn Chen <kertansul@gmail.com>
 ################
 
 # Tensorflow
-ARG TF_BRANCH=master
+ARG TF_BRANCH=r1.4
 ARG BAZEL_VERSION=0.5.4
 ARG TF_AVAILABLE_CPUS=32
 # nvidia Caffe
@@ -164,9 +164,9 @@ ENV CI_BUILD_PYTHON=python \
     PYTHON_BIN_PATH=/usr/bin/python \
     PYTHON_LIB_PATH=/usr/local/lib/python2.7/dist-packages \
     TF_NEED_CUDA=1 \
-    TF_CUDA_VERSION=9.0 \
-    TF_CUDA_COMPUTE_CAPABILITIES=3.0,3.5,5.2,6.0,6.1,7.0 \
-    TF_CUDNN_VERSION=7
+    TF_CUDA_VERSION=8.0 \
+    TF_CUDA_COMPUTE_CAPABILITIES=3.0,3.5,5.2,6.0,6.1 \
+    TF_CUDNN_VERSION=6
 RUN ./configure
 
 # Build and Install TensorFlow.
@@ -177,14 +177,16 @@ RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/lib
                 --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" \
                 --jobs=${TF_AVAILABLE_CPUS} \
                 tensorflow/tools/pip_package:build_pip_package && \
+    rm /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     mkdir /pip_pkg && \
     bazel-bin/tensorflow/tools/pip_package/build_pip_package /pip_pkg && \
     pip --no-cache-dir install --upgrade /pip_pkg/tensorflow-*.whl
-
 # Clean up pip wheel and Bazel cache when done.
-# Don't clean them up if you want to use 'bazel-bin/tensorflow/' related commands
-#RUN rm -rf /pip_pkg && \
-#    rm -rf /root/.cache
+RUN rm -rf /pip_pkg && \
+    rm -rf /root/.cache
+
+# Build Tensorflow profiler
+RUN bazel clean && bazel build --verbose_failures --config opt tensorflow/core/profiler:profiler
 
 # Expose Ports for TensorBoard (6006), Ipython (8888)
 EXPOSE 6006 8888
