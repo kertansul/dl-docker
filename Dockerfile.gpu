@@ -179,10 +179,12 @@ RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/lib
                 tensorflow/tools/pip_package:build_pip_package && \
     mkdir /pip_pkg && \
     bazel-bin/tensorflow/tools/pip_package/build_pip_package /pip_pkg && \
-    pip --no-cache-dir install --upgrade /pip_pkg/tensorflow-*.whl && \
-    rm -rf /pip_pkg && \
-    rm -rf /root/.cache
+    pip --no-cache-dir install --upgrade /pip_pkg/tensorflow-*.whl
+
 # Clean up pip wheel and Bazel cache when done.
+# Don't clean them up if you want to use 'bazel-bin/tensorflow/' related commands
+#RUN rm -rf /pip_pkg && \
+#    rm -rf /root/.cache
 
 # Expose Ports for TensorBoard (6006), Ipython (8888)
 EXPOSE 6006 8888
