@@ -1,11 +1,23 @@
-FROM nvidia/cuda:8.0-cudnn6-devel-ubuntu14.04
+FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
 
 MAINTAINER Shawn Chen <kertansul@gmail.com>
 
-ARG TENSORFLOW_VERSION=1.4.0-cp27-none
-ARG TENSORFLOW_ARCH=gpu
+################
+### Settings ###
+################
+
+# Tensorflow
+ARG TF_BRANCH=master
+ARG BAZEL_VERSION=0.5.4
+ARG TF_AVAILABLE_CPUS=32
+# nvidia Caffe
 ARG CAFFE_VERSION=caffe-0.16
+# Pytorch
 ARG PYTORCH_VERSION=torch-0.2.0
+
+#############
+### Basic ###
+#############
 
 # Install some dependencies
 RUN apt-get update && apt-get install -y \
@@ -23,7 +35,7 @@ RUN apt-get update && apt-get install -y \
 		liblcms2-dev \
 		libopenblas-dev \
 		liblapack-dev \
-		libopenjpeg2 \
+		libopenjpeg-dev \
 		libpng12-dev \
 		libssl-dev \
 		libtiff5-dev \
@@ -72,41 +84,112 @@ RUN apt-get update && apt-get install -y \
 	apt-get autoremove && \
 	rm -rf /var/lib/apt/lists/*
 
-# Install other useful Python packages using pip
-RUN pip --no-cache-dir install --upgrade ipython && \
-	pip --no-cache-dir install \
-		Cython \
-		ipykernel \
-		jupyter \
-		path.py \
-		Pillow \
-		pygments \
-		six \
-		sphinx \
-		wheel \
-		zmq \
-		&& \
-	python -m ipykernel.kernelspec
+########################
+### Build Tensorflow ###
+########################
 
-# [Shawn] For TensorFlow, Install libcupti
-RUN add-apt-repository -y 'deb http://ftp.tw.debian.org/debian/ jessie main non-free'
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8B48AD6246925553
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 7638D0442B90D010
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys CBF8D6FD518E17E1
-RUN apt-get update && apt-get install -y libcupti-dev
-RUN add-apt-repository --remove 'deb http://ftp.tw.debian.org/debian/ jessie main non-free'
-RUN apt-get autoclean
+# modified from https://raw.githubusercontent.com/tensorflow/tensorflow/master/tensorflow/tools/docker/Dockerfile.devel-gpu-cuda9-cudnn7
+# some of them may be duplicated in basic installation, but I just leave it there
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        curl \
+        git \
+        golang \
+        libcurl3-dev \
+        libfreetype6-dev \
+        libpng12-dev \
+        libzmq3-dev \
+        pkg-config \
+        python-dev \
+        python-pip \
+        rsync \
+        software-properties-common \
+        unzip \
+        zip \
+        zlib1g-dev \
+        openjdk-8-jdk \
+        openjdk-8-jre-headless \
+        wget \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# [Shawn] for Tensorflow, upgrade protobuf
-RUN pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/protobuf-3.1.0-cp27-none-linux_x86_64.whl
-
-# Install TensorFlow
 RUN pip --no-cache-dir install --upgrade \
-    https://storage.googleapis.com/tensorflow/linux/${TENSORFLOW_ARCH}/tensorflow_${TENSORFLOW_ARCH}-${TENSORFLOW_VERSION}-linux_x86_64.whl
+        pip setuptools
 
-# Enable GPU Support for TensorFlow
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64"
-ENV CUDA_HOME=/usr/local/cuda
+RUN pip --no-cache-dir install \
+        ipykernel \
+        jupyter \
+        matplotlib \
+        numpy \
+        scipy \
+        sklearn \
+        pandas \
+        wheel \
+        && \
+    python -m ipykernel.kernelspec
+
+# notebook setup will be left in the last section #
+
+# Set up Bazel.
+
+# Running bazel inside a `docker build` command causes trouble, cf:
+#   https://github.com/bazelbuild/bazel/issues/134
+# The easiest solution is to set up a bazelrc file forcing --batch.
+RUN echo "startup --batch" >>/etc/bazel.bazelrc
+# Similarly, we need to workaround sandboxing issues:
+#   https://github.com/bazelbuild/bazel/issues/418
+RUN echo "build --spawn_strategy=standalone --genrule_strategy=standalone" \
+    >>/etc/bazel.bazelrc
+WORKDIR /
+RUN mkdir /bazel && \
+    cd /bazel && \
+    wget --quiet https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
+    wget --quiet https://raw.githubusercontent.com/bazelbuild/bazel/master/LICENSE && \
+    chmod +x bazel-*.sh && \
+    ./bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
+    rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
+
+# Download and build TensorFlow.
+WORKDIR /
+RUN git clone https://github.com/tensorflow/tensorflow.git && \
+    cd tensorflow && \
+    git checkout ${TF_BRANCH}
+WORKDIR /tensorflow
+
+# Configure the build for our CUDA configuration.
+ENV CI_BUILD_PYTHON=python \
+    LD_LIBRARY_PATH=/usr/local/cuda/extras/CUPTI/lib64:${LD_LIBRARY_PATH} \
+    CUDNN_INSTALL_PATH=/usr/lib/x86_64-linux-gnu \
+    PYTHON_BIN_PATH=/usr/bin/python \
+    PYTHON_LIB_PATH=/usr/local/lib/python2.7/dist-packages \
+    TF_NEED_CUDA=1 \
+    TF_CUDA_VERSION=9.0 \
+    TF_CUDA_COMPUTE_CAPABILITIES=3.0,3.5,5.2,6.0,6.1,7.0 \
+    TF_CUDNN_VERSION=7
+RUN ./configure
+
+# Build and Install TensorFlow.
+RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
+    LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
+    bazel build -c opt \
+                --config=cuda \
+                --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" \
+                --jobs=${TF_AVAILABLE_CPUS} \
+                tensorflow/tools/pip_package:build_pip_package && \
+    mkdir /pip_pkg && \
+    bazel-bin/tensorflow/tools/pip_package/build_pip_package /pip_pkg && \
+    pip --no-cache-dir install --upgrade /pip_pkg/tensorflow-*.whl && \
+    rm -rf /pip_pkg && \
+    rm -rf /root/.cache
+# Clean up pip wheel and Bazel cache when done.
+
+# Expose Ports for TensorBoard (6006), Ipython (8888)
+EXPOSE 6006 8888
+
+##########################
+### Build nvidia Caffe ###
+##########################
 
 # Install dependencies for Caffe
 RUN apt-get update && apt-get install -y \
@@ -148,25 +231,29 @@ ENV PYTHONPATH=$PYCAFFE_ROOT:$PYTHONPATH \
 
 RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 
+#######################
+### Install Pytorch ###
+#######################
+ 
+RUN pip install http://download.pytorch.org/whl/cu80/${PYTORCH_VERSION}.post3-cp27-cp27mu-manylinux1_x86_64.whl
+RUN pip install torchvision
 
-# [Shawn] Install GraphViz for visualizing Caffe networks
+#############################################
+### Other utilities and environment setup ###
+#############################################
+
+# Install GraphViz for visualizing Caffe networks
 RUN apt-get update && apt-get install -y graphviz
 RUN pip --no-cache-dir install GraphViz
-# [Shawn] Install pydot while using nvidia Caffe, version will be fixed at 1.1.0 for Theano
-RUN pip --no-cache-dir install pydot==1.1.0
-# [Shawn] Install OpenCV
-Run apt-get install python-opencv
-# [Shawn] Install mpld3 for interacting charts on ipython notebook
+# Install OpenCV
+RUN apt-get install python-opencv
+# Install mpld3 for interacting charts on ipython notebook
 RUN pip --no-cache-dir install mpld3
 
-# [Shawn] Install t-SNE tutorial dependencies: scikit-learn 0.18.1, seaborn, and moviepy
+# Install t-SNE tutorial dependencies: scikit-learn 0.18.1, seaborn, and moviepy
 # https://github.com/oreillymedia/t-SNE-tutorial
 RUN pip install --upgrade html5lib==1.0b8
 RUN pip --no-cache-dir install -U scikit-learn seaborn moviepy
-
-# Install Pytorch
-RUN pip install http://download.pytorch.org/whl/cu80/${PYTORCH_VERSION}.post3-cp27-cp27mu-manylinux1_x86_64.whl
-RUN pip install torchvision
 
 # Install pip3 and useful dependencies
 RUN apt-get update && apt-get install -y python3-pip
@@ -190,8 +277,5 @@ RUN add-apt-repository -y ppa:jonathonf/vim
 RUN apt-get update
 RUN apt-get install -y vim
 
-# Expose Ports for TensorBoard (6006), Ipython (8888)
-EXPOSE 6006 8888
 
 WORKDIR "/root"
-# CMD ["/bin/bash"]
