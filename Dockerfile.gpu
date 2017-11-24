@@ -172,21 +172,20 @@ RUN ./configure
 # Build and Install TensorFlow.
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
+    tensorflow/tools/ci_build/builds/configured GPU \
     bazel build -c opt \
                 --config=cuda \
                 --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" \
                 --jobs=${TF_AVAILABLE_CPUS} \
                 tensorflow/tools/pip_package:build_pip_package && \
+                tensorflow/core/profiler:profiler && \
     rm /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     mkdir /pip_pkg && \
     bazel-bin/tensorflow/tools/pip_package/build_pip_package /pip_pkg && \
     pip --no-cache-dir install --upgrade /pip_pkg/tensorflow-*.whl
 # Clean up pip wheel and Bazel cache when done.
 RUN rm -rf /pip_pkg && \
-    rm -rf /root/.cache
-
-# Build Tensorflow profiler
-RUN bazel clean && bazel build --verbose_failures --config opt tensorflow/core/profiler:profiler
+    rm -rf /root/.cache/pip
 
 # Expose Ports for TensorBoard (6006), Ipython (8888)
 EXPOSE 6006 8888
