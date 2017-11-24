@@ -177,7 +177,7 @@ RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/lib
                 --config=cuda \
                 --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" \
                 --jobs=${TF_AVAILABLE_CPUS} \
-                tensorflow/tools/pip_package:build_pip_package && \
+                tensorflow/tools/pip_package:build_pip_package \
                 tensorflow/core/profiler:profiler && \
     rm /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     mkdir /pip_pkg && \
@@ -205,11 +205,7 @@ RUN apt-get update && apt-get install -y \
 		libopencv-dev \
 		libprotobuf-dev \
 		libsnappy-dev \
-		protobuf-compiler \
-		&& \
-	apt-get clean && \
-	apt-get autoremove && \
-	rm -rf /var/lib/apt/lists/*
+		protobuf-compiler
 
 # Install nvidia NCCL to support multiple GPU
 RUN cd /root/ && git clone https://github.com/NVIDIA/nccl.git && \
@@ -253,8 +249,8 @@ RUN apt-get install python-opencv
 # Install mpld3 for interacting charts on ipython notebook
 RUN pip --no-cache-dir install mpld3
 # Install scikit-image and upgrade pandas
-RUN pip install scikit-image
-RUN pip install -U pandas
+RUN pip --no-cache-dir install scikit-image
+RUN pip --no-cache-dir install -U pandas
 
 # Install t-SNE tutorial dependencies: scikit-learn 0.18.1, seaborn, and moviepy
 # https://github.com/oreillymedia/t-SNE-tutorial
@@ -263,10 +259,10 @@ RUN pip --no-cache-dir install -U scikit-learn seaborn moviepy
 
 # Install pip3 and useful dependencies
 RUN apt-get update && apt-get install -y python3-pip
-RUN pip3 install numpy \
-                 pandas 
-RUN pip3 install scikit-image \
-                 matplotlib
+RUN pip3 --no-cache-dir install numpy \
+                                pandas 
+RUN pip3 --no-cache-dir install scikit-image \
+                                matplotlib
 
 # Install Python3 for notebook
 RUN python3 -m pip install ipykernel
