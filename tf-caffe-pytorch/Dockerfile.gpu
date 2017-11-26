@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+FROM nvidia/cuda:8.0-cudnn6-devel-ubuntu16.04
 
 MAINTAINER Shawn Chen <kertansul@gmail.com>
 
@@ -7,82 +7,13 @@ MAINTAINER Shawn Chen <kertansul@gmail.com>
 ################
 
 # Tensorflow
-ARG TF_BRANCH=master
+ARG TF_BRANCH=r1.4
 ARG BAZEL_VERSION=0.5.4
 ARG TF_AVAILABLE_CPUS=32
 # nvidia Caffe
 ARG CAFFE_VERSION=caffe-0.16
 # Pytorch
 ARG PYTORCH_VERSION=torch-0.2.0
-
-#############
-### Basic ###
-#############
-
-# Install some dependencies
-RUN apt-get update && apt-get install -y \
-		bc \
-		build-essential \
-		cmake \
-		curl \
-		g++ \
-		gfortran \
-		git \
-		libffi-dev \
-		libfreetype6-dev \
-		libhdf5-dev \
-		libjpeg-dev \
-		liblcms2-dev \
-		libopenblas-dev \
-		liblapack-dev \
-		libopenjpeg-dev \
-		libpng12-dev \
-		libssl-dev \
-		libtiff5-dev \
-		libwebp-dev \
-		libzmq3-dev \
-		nano \
-		pkg-config \
-		python-dev \
-		software-properties-common \
-		unzip \
-		vim \
-		wget \
-		zlib1g-dev \
-		&& \
-	apt-get clean && \
-	apt-get autoremove && \
-	rm -rf /var/lib/apt/lists/* && \
-# Link BLAS library to use OpenBLAS using the alternatives mechanism (https://www.scipy.org/scipylib/building/linux.html#debian-ubuntu)
-	update-alternatives --set libblas.so.3 /usr/lib/openblas-base/libblas.so.3
-
-# Install pip
-RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
-	python get-pip.py && \
-	rm get-pip.py
-
-# Add SNI support to Python
-RUN pip --no-cache-dir install \
-		pyopenssl \
-		ndg-httpsclient \
-		pyasn1
-
-# Install useful Python packages using apt-get to avoid version incompatibilities with Tensorflow binary
-# especially numpy, scipy, skimage and sklearn (see https://github.com/tensorflow/tensorflow/issues/2034)
-RUN apt-get update && apt-get install -y \
-		python-numpy \
-		python-scipy \
-		python-nose \
-		python-h5py \
-		python-skimage \
-		python-matplotlib \
-		python-pandas \
-		python-sklearn \
-		python-sympy \
-		&& \
-	apt-get clean && \
-	apt-get autoremove && \
-	rm -rf /var/lib/apt/lists/*
 
 ########################
 ### Build Tensorflow ###
@@ -101,7 +32,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libzmq3-dev \
         pkg-config \
         python-dev \
-        python-pip \
         rsync \
         software-properties-common \
         unzip \
@@ -114,8 +44,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip --no-cache-dir install --upgrade \
-        pip setuptools
+RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
+    python get-pip.py && \
+    rm get-pip.py
 
 RUN pip --no-cache-dir install \
         ipykernel \
@@ -125,9 +56,12 @@ RUN pip --no-cache-dir install \
         scipy \
         sklearn \
         pandas \
-        wheel \
         && \
     python -m ipykernel.kernelspec
+
+# fix for couldn't import dot_parser error
+RUN pip --no-cache-dir install \
+        pyparsing==2.0.1
 
 # notebook setup will be left in the last section #
 
@@ -164,34 +98,38 @@ ENV CI_BUILD_PYTHON=python \
     PYTHON_BIN_PATH=/usr/bin/python \
     PYTHON_LIB_PATH=/usr/local/lib/python2.7/dist-packages \
     TF_NEED_CUDA=1 \
-    TF_CUDA_VERSION=9.0 \
-    TF_CUDA_COMPUTE_CAPABILITIES=3.0,3.5,5.2,6.0,6.1,7.0 \
-    TF_CUDNN_VERSION=7
+    TF_CUDA_VERSION=8.0 \
+    TF_CUDA_COMPUTE_CAPABILITIES=3.0,3.5,5.2,6.0,6.1 \
+    TF_CUDNN_VERSION=6
 RUN ./configure
 
 # Build and Install TensorFlow.
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
+    tensorflow/tools/ci_build/builds/configured GPU \
     bazel build -c opt \
                 --config=cuda \
                 --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" \
                 --jobs=${TF_AVAILABLE_CPUS} \
-                tensorflow/tools/pip_package:build_pip_package && \
+                tensorflow/tools/pip_package:build_pip_package \
+                tensorflow/core/profiler:profiler && \
+    rm /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     mkdir /pip_pkg && \
     bazel-bin/tensorflow/tools/pip_package/build_pip_package /pip_pkg && \
     pip --no-cache-dir install --upgrade /pip_pkg/tensorflow-*.whl
 # Clean up pip wheel and Bazel cache when done.
 RUN rm -rf /pip_pkg && \
-    rm -rf /root/.cache
+    rm -rf /root/.cache/pip
 
-# Build Tensorflow profiler
-RUN bazel clean
-RUN LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
-    bazel build -c opt \
-                --config=cuda \
-                --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" \
-                --jobs=${TF_AVAILABLE_CPUS} \
-                tensorflow/core/profiler:profiler
+# Install google pprof (for Profiler visualization)
+RUN apt-get update && apt-get install -y graphviz
+RUN pip --no-cache-dir install GraphViz
+RUN cd ~ && curl -O https://storage.googleapis.com/golang/go1.6.linux-amd64.tar.gz && \
+    tar xvf go1.6.linux-amd64.tar.gz && \
+    mv go /usr/local
+ENV GOPATH=/root/go
+ENV PATH=/usr/local/go:$GOPATH/bin:$PATH
+RUN go get github.com/google/pprof
 
 # Expose Ports for TensorBoard (6006), Ipython (8888)
 EXPOSE 6006 8888
@@ -202,6 +140,8 @@ EXPOSE 6006 8888
 
 # Install dependencies for Caffe
 RUN apt-get update && apt-get install -y \
+        cmake \
+        libatlas-base-dev \
 		libboost-all-dev \
 		libgflags-dev \
 		libgoogle-glog-dev \
@@ -212,10 +152,8 @@ RUN apt-get update && apt-get install -y \
 		libprotobuf-dev \
 		libsnappy-dev \
 		protobuf-compiler \
-		&& \
-	apt-get clean && \
-	apt-get autoremove && \
-	rm -rf /var/lib/apt/lists/*
+        && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install nvidia NCCL to support multiple GPU
 RUN cd /root/ && git clone https://github.com/NVIDIA/nccl.git && \
@@ -228,7 +166,7 @@ RUN git clone -b ${CAFFE_VERSION} --depth 1 https://github.com/NVIDIA/caffe.git 
 	cd /root/caffe && \
 	cat python/requirements.txt | xargs -n1 pip install && \
 	mkdir build && cd build && \
-	cmake -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="52 60" -DCUDA_ARCH_PTX="60" -DUSE_CUDNN=1 -DBLAS=Open -USE_NCCL=On .. && \
+	cmake -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="52 60" -DCUDA_ARCH_PTX="60" -DUSE_CUDNN=1 -USE_NCCL=On .. && \
 	make -j"$(nproc)" all && \
 	make install
 
@@ -251,28 +189,21 @@ RUN pip install torchvision
 ### Other utilities and environment setup ###
 #############################################
 
-# Install GraphViz for visualizing Caffe networks
-RUN apt-get update && apt-get install -y graphviz
-RUN pip --no-cache-dir install GraphViz
 # Install OpenCV
-RUN apt-get install python-opencv
+RUN apt-get update && apt-get install -y python-opencv
 # Install mpld3 for interacting charts on ipython notebook
 RUN pip --no-cache-dir install mpld3
 # Install scikit-image and upgrade pandas
-RUN pip install scikit-image
-RUN pip install -U pandas
-
-# Install t-SNE tutorial dependencies: scikit-learn 0.18.1, seaborn, and moviepy
-# https://github.com/oreillymedia/t-SNE-tutorial
-RUN pip install --upgrade html5lib==1.0b8
-RUN pip --no-cache-dir install -U scikit-learn seaborn moviepy
+RUN pip --no-cache-dir install scikit-image
+RUN pip --no-cache-dir install -U numpy
+RUN pip --no-cache-dir install -U pandas
 
 # Install pip3 and useful dependencies
 RUN apt-get update && apt-get install -y python3-pip
-RUN pip3 install numpy \
-                 pandas 
-RUN pip3 install scikit-image \
-                 matplotlib
+RUN pip3 --no-cache-dir install numpy \
+                                pandas
+RUN pip3 --no-cache-dir install scikit-image \
+                                matplotlib
 
 # Install Python3 for notebook
 RUN python3 -m pip install ipykernel
@@ -284,10 +215,15 @@ COPY jupyter_notebook_config.py /root/.jupyter/
 # Jupyter has issues with being run directly: https://github.com/ipython/ipython/issues/7062
 COPY run_jupyter.sh /root/
 
-# Update Vim 
-RUN add-apt-repository -y ppa:jonathonf/vim
-RUN apt-get update
-RUN apt-get install -y vim
-
+# Vim and Bash Settings
+RUN add-apt-repository -y ppa:jonathonf/vim && \
+    apt-get update && apt-get install -y vim
+COPY .bashrc /root
+COPY .vimrc /root
+COPY vimrc /etc/vim
+RUN git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
+RUN vim +PluginInstall +qall
+RUN cd ~/.vim/bundle/YouCompleteMe && ./install.py --clang-completer
+RUN cd ~/.vim/bundle/vim-colorschemes/ && cp -r colors ~/.vim/
 
 WORKDIR "/root"

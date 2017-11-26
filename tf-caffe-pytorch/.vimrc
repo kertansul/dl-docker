@@ -62,7 +62,7 @@ Plugin 'Valloric/YouCompleteMe'
 Plugin 'kertansul/Dockerfile.vim'
 " add colorschemes
 Plugin 'flazz/vim-colorschemes'
-colorscheme molokai
+silent! colorscheme molokai
 " add tmux-navigator
 "Plugin 'christoomey/vim-tmux-navigator'
 "let g:tmux_navigator_no_mappings = 1
