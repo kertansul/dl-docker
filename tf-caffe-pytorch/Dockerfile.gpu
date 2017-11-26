@@ -219,8 +219,8 @@ COPY run_jupyter.sh /root/
 RUN add-apt-repository -y ppa:jonathonf/vim && \
     apt-get update && apt-get install -y vim
 COPY .bashrc /root
-COPY vimrc /etc/vim
 COPY .vimrc /root
+COPY vimrc /etc/vim
 RUN git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
 RUN vim +PluginInstall +qall
 RUN cd ~/.vim/bundle/YouCompleteMe && ./install.py --clang-completer
