@@ -142,39 +142,39 @@ EXPOSE 6006 8888
 RUN apt-get update && apt-get install -y \
         cmake \
         libatlas-base-dev \
-		libboost-all-dev \
-		libgflags-dev \
-		libgoogle-glog-dev \
-		libhdf5-serial-dev \
-		libleveldb-dev \
-		liblmdb-dev \
-		libopencv-dev \
-		libprotobuf-dev \
-		libsnappy-dev \
-		protobuf-compiler \
+        libboost-all-dev \
+        libgflags-dev \
+        libgoogle-glog-dev \
+        libhdf5-serial-dev \
+        libleveldb-dev \
+        liblmdb-dev \
+        libopencv-dev \
+        libprotobuf-dev \
+        libsnappy-dev \
+        protobuf-compiler \
         && \
     rm -rf /var/lib/apt/lists/*
 
 # Install nvidia NCCL to support multiple GPU
 RUN cd /root/ && git clone https://github.com/NVIDIA/nccl.git && \
-	cd nccl && \
-	make CUDA_HOME=/usr/local/cuda test && \
-	make PREFIX=/usr/local install
+    cd nccl && \
+    make CUDA_HOME=/usr/local/cuda test && \
+    make PREFIX=/usr/local install
 
 # Install Caffe 
 RUN git clone -b ${CAFFE_VERSION} --depth 1 https://github.com/NVIDIA/caffe.git /root/caffe && \
-	cd /root/caffe && \
-	cat python/requirements.txt | xargs -n1 pip install && \
-	mkdir build && cd build && \
-	cmake -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="52 60" -DCUDA_ARCH_PTX="60" -DUSE_CUDNN=1 -USE_NCCL=On .. && \
-	make -j"$(nproc)" all && \
-	make install
+    cd /root/caffe && \
+    cat python/requirements.txt | xargs -n1 pip install && \
+    mkdir build && cd build && \
+    cmake -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="52 60" -DCUDA_ARCH_PTX="60" -DUSE_CUDNN=1 -USE_NCCL=On .. && \
+    make -j"$(nproc)" all && \
+    make install
 
 # Set up Caffe environment variables
 ENV CAFFE_ROOT=/root/caffe
 ENV PYCAFFE_ROOT=$CAFFE_ROOT/python
 ENV PYTHONPATH=$PYCAFFE_ROOT:$PYTHONPATH \
-	PATH=$CAFFE_ROOT/build/tools:$PYCAFFE_ROOT:$PATH
+    PATH=$CAFFE_ROOT/build/tools:$PYCAFFE_ROOT:$PATH
 
 RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 
