@@ -126,7 +126,8 @@ RUN apt-get update && apt-get install -y graphviz
 RUN pip --no-cache-dir install GraphViz
 RUN cd ~ && curl -O https://storage.googleapis.com/golang/go1.6.linux-amd64.tar.gz && \
     tar xvf go1.6.linux-amd64.tar.gz && \
-    mv go /usr/local
+    mv go /usr/local && \
+    rm go1.6.linux-amd64.tar.gz
 ENV GOPATH=/root/go
 ENV PATH=/usr/local/go:$GOPATH/bin:$PATH
 RUN go get github.com/google/pprof
