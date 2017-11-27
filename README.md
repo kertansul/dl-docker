@@ -7,13 +7,10 @@ If you are not familiar with Docker, but would still like an all-in-one solution
 This is what you get out of the box when you create a container with the provided image/Dockerfile:
 * Ubuntu 14.04
 * [CUDA 8.0](https://developer.nvidia.com/cuda-toolkit) (GPU version only)
-* [cuDNN v5](https://developer.nvidia.com/cudnn) (GPU version only)
-* [Tensorflow v1.0.1](https://www.tensorflow.org/)
-* [NVIDIA Caffe v0.15](https://github.com/NVIDIA/nvidia-docker/wiki/NVIDIA-Caffe)
-* [Theano rel-0.9.0rc4](http://deeplearning.net/software/theano/)
-* [Keras v2.0.1](http://keras.io/)
-* [Lasagne v0.1](http://lasagne.readthedocs.io/en/latest/)
-* [Torch](http://torch.ch/) (includes nn, cutorch, cunn and cuDNN bindings)
+* [cuDNN v6](https://developer.nvidia.com/cudnn) (GPU version only)
+* [Tensorflow v1.4.1](https://www.tensorflow.org/)
+* [NVIDIA Caffe v0.16](https://github.com/NVIDIA/nvidia-docker/wiki/NVIDIA-Caffe)
+* [PyTorch v0.2.0](http://pytorch.org/)
 * [iPython/Jupyter Notebook](http://jupyter.org/) (including iTorch kernel)
 * [Numpy](http://www.numpy.org/), [SciPy](https://www.scipy.org/), [Pandas](http://pandas.pydata.org/), [Scikit Learn](http://scikit-learn.org/), [Matplotlib](http://matplotlib.org/)
 * A few common libraries used for deep learning
