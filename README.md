@@ -5,7 +5,7 @@ If you are not familiar with Docker, but would still like an all-in-one solution
 
 ## Specs
 This is what you get out of the box when you create a container with the provided image/Dockerfile:
-* Ubuntu 14.04
+* Ubuntu 16.04
 * [CUDA 8.0](https://developer.nvidia.com/cuda-toolkit) (GPU version only)
 * [cuDNN v6](https://developer.nvidia.com/cudnn) (GPU version only)
 * [Tensorflow v1.4.1](https://www.tensorflow.org/)
@@ -23,10 +23,7 @@ This is what you get out of the box when you create a container with the provide
 
 3. **GPU Version Only**: Install nvidia-docker: [https://github.com/NVIDIA/nvidia-docker](https://github.com/NVIDIA/nvidia-docker), following the instructions [here](https://github.com/NVIDIA/nvidia-docker/wiki/Installation). This will install a replacement for the docker CLI. It takes care of setting up the Nvidia host driver environment inside the Docker containers and a few other things.
 
-### Obtaining the Docker image
-You have 2 options to obtain the Docker image
-
-#### Build the Docker image locally
+### Build the Docker image locally
 Alternatively, you can build the images locally. Also, since the GPU version is not available in Docker Hub at the moment, you'll have to follow this if you want to GPU version. Note that this will take an hour or two depending on your machine since it compiles a few libraries from scratch.
 
 ```bash
@@ -77,17 +74,6 @@ Installing all the deep learning frameworks to coexist and function correctly is
 
 If you would rather install all the frameworks yourself manually, take a look at this guide: [Setting up a deep learning machine from scratch](https://github.com/saiprashanths/dl-setup)
 
-### Do I really need an all-in-one container?
-No. The provided all-in-one solution is useful if you have dependencies on multiple frameworks (say, load a pre-trained Caffe model, finetune it, convert it to Tensorflow and continue developing there) or if you just want to play around with the various frameworks.
-
-The Docker philosophy is to build a container for each logical task/framework. If we followed this, we should have one container for each of the deep learning frameworks. This minimizes clashes between frameworks and is easier to maintain as things evolve. In fact, if you only intend to use one of the frameworks, or at least use only one framework at a time, follow this approach. You can find Dockerfiles for individual frameworks here:
-* [Tensorflow Docker](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/docker)
-* [Caffe Docker](https://github.com/BVLC/caffe/tree/master/docker)
-* [Theano Docker](https://github.com/Kaixhin/dockerfiles/tree/master/cuda-theano)
-* [Keras Docker](https://github.com/Kaixhin/dockerfiles/tree/master/cuda-keras/cuda_v7.5)
-* [Lasagne Docker](https://github.com/Kaixhin/dockerfiles/tree/master/cuda-lasagne/cuda_v7.5)
-* [Torch Docker](https://github.com/Kaixhin/dockerfiles/tree/master/cuda-torch)
-
 ## FAQs
 ### Performance
 Running the DL frameworks as Docker containers should have no performance impact during runtime. Spinning up a Docker container itself is very fast and should take only a couple of seconds or less
@@ -102,7 +88,7 @@ Keep in mind that the changes made inside Docker container are not persistent. L
 ### How do I update/install new libraries?
 You can do one of:
 
-1. Modify the `Dockerfile` directly to install new or update your existing libraries. You will need to do a `docker build` after you do this. If you just want to update to a newer version of the DL framework(s), you can pass them as CLI parameter using the --build-arg tag ([see](-v /sharedfolder:/root/sharedfolder) for details). The framework versions are defined at the top of the `Dockerfile`. For example, `docker build -t kertansul/dl-docker:cpu -f Dockerfile.cpu --build-arg TENSORFLOW_VERSION=0.9.0rc0 .`
+1. Modify the `Dockerfile` directly to install new or update your existing libraries. You will need to do a `docker build` after you do this. If you just want to update to a newer version of the DL framework(s), you can pass them as CLI parameter using the --build-arg tag ([see](-v /sharedfolder:/root/sharedfolder) for details). The framework versions are defined at the top of the `Dockerfile`. For example, `docker build -t kertansul/dl-docker:gpu -f Dockerfile.gpu --build-arg TF_BRANCH=r1.3 .`
 
 2. You can log in to a container and install the frameworks interactively using the terminal. After you've made sure everything looks good, you can commit the new contains and store it as an image
 
