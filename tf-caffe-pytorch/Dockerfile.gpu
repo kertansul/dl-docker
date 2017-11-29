@@ -227,4 +227,7 @@ RUN vim +PluginInstall +qall
 RUN cd ~/.vim/bundle/YouCompleteMe && ./install.py --clang-completer
 RUN cd ~/.vim/bundle/vim-colorschemes/ && cp -r colors ~/.vim/
 
+# install less for better git log/diff displays
+RUN apt-get install -y less
+
 WORKDIR "/root"
