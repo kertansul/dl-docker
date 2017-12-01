@@ -2,7 +2,9 @@ FROM nvidia/cuda:8.0-cudnn6-devel-ubuntu14.04
 MAINTAINER Shawn Chen <kertansul@gmail.com>
 
 ARG CAFFE_VERSION=caffe-0.15
-ARG DIGITS_VERSION=digits-6.0
+ARG DIGITS_BRANCH=tf/dynamic-memory
+ARG DIGITS_REPO=https://github.com/kertansul/DIGITS.git
+ARG CUDA_VISIBLE_DEVICES=0
 
 ###### Install some dependencies with Deb packages #####
 RUN apt-get update && apt-key update && apt-get install -y --no-install-recommends \
@@ -73,32 +75,17 @@ ENV PYTHONPATH=$PYCAFFE_ROOT:$PYTHONPATH \
 
 RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 
-##### Build Torch #####
+##### Install Tensorflow #####
 
 # Basic Install
-ENV TORCH_ROOT=/root/torch
-ENV PATH=$PATH:/root/torch/install/bin
-
-RUN git clone https://github.com/torch/distro.git $TORCH_ROOT --recursive && \
-    cd $TORCH_ROOT && \
-    ./install-deps && \
-    ./install.sh -b && \
-    bash ~/.bashrc
-
-# Extra dependencies
-RUN luarocks install tds && \
-    luarocks install "https://raw.github.com/deepmind/torch-hdf5/master/hdf5-0-0.rockspec" && \
-    luarocks install "https://raw.github.com/Neopallium/lua-pb/master/lua-pb-scm-0.rockspec" && \
-    luarocks install lightningmdb 0.9.18.1-1 LMDB_INCDIR=/usr/include LMDB_LIBDIR=/usr/lib/x86_64-linux-gnu
-# If you have installed NCCL
-RUN luarocks install "https://raw.githubusercontent.com/ngimel/nccl.torch/master/nccl-scm-1.rockspec"
-
+RUN apt-get install libcudnn5
+RUN pip install https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow_gpu-1.3.0-cp27-none-linux_x86_64.whl
 
 ##### Build Digits #####
 
 # Download source
 ENV DIGITS_ROOT=/root/digits
-RUN git clone -b ${DIGITS_VERSION} https://github.com/NVIDIA/DIGITS.git $DIGITS_ROOT
+RUN git clone -b $DIGITS_BRANCH $DIGITS_REPO $DIGITS_ROOT
 
 # Fix the setuptools module version to 33.1.1
 # http://stackoverflow.com/questions/42029545/pip-is-error-typeerror-call-takes-exactly-2-arguments-1-given
@@ -120,6 +107,14 @@ VOLUME /jobs
 VOLUME /models
 ENV DIGITS_JOBS_DIR=/jobs
 ENV DIGITS_LOGFILE_FILENAME=/jobs/digits.log
+
+#################################
+### Constrain GPU Device HERE ###
+#################################
+# Note that for kertansul/digits, 
+# config is set to allow_growth and allow_soft_placement
+ENV CUDA_DEVICE_ORDER=PCI_BUS_ID
+ENV CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES
 
 # Starting the server
 WORKDIR /root/digits
