@@ -6,11 +6,11 @@ If you are not familiar with Docker, but would still like an all-in-one solution
 ## Specs
 This is what you get out of the box when you create a container with the provided image/Dockerfile:
 * Ubuntu 16.04
-* [CUDA 8.0](https://developer.nvidia.com/cuda-toolkit) (GPU version only)
-* [cuDNN v6](https://developer.nvidia.com/cudnn) (GPU version only)
-* [Tensorflow v1.4.1](https://www.tensorflow.org/)
-* [NVIDIA Caffe v0.16](https://github.com/NVIDIA/nvidia-docker/wiki/NVIDIA-Caffe)
-* [PyTorch v0.2.0](http://pytorch.org/)
+* [CUDA 9.0](https://developer.nvidia.com/cuda-toolkit) (GPU version only)
+* [cuDNN v7](https://developer.nvidia.com/cudnn) (GPU version only)
+* [Tensorflow v1.8.0-rc1](https://www.tensorflow.org/)
+* [NVIDIA Caffe v0.17](https://github.com/NVIDIA/nvidia-docker/wiki/NVIDIA-Caffe)
+* [PyTorch v0.4.0](http://pytorch.org/)
 * [iPython/Jupyter Notebook](http://jupyter.org/) (including iTorch kernel)
 * [Numpy](http://www.numpy.org/), [SciPy](https://www.scipy.org/), [Pandas](http://pandas.pydata.org/), [Scikit Learn](http://scikit-learn.org/), [Matplotlib](http://matplotlib.org/)
 * A few common libraries used for deep learning
@@ -33,6 +33,7 @@ cd dl-docker
 
 **GPU Version**
 ```bash
+cd tf-caffe-pytorch
 docker build -t kertansul/dl-docker:gpu -f Dockerfile.gpu .
 ```
 This will build a Docker image named `dl-docker` and tagged either `cpu` or `gpu` depending on the tag your specify. Also note that the appropriate `Dockerfile.<architecture>` has to be used.

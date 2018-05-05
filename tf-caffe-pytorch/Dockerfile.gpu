@@ -1,4 +1,4 @@
-FROM nvidia/cuda:8.0-cudnn6-devel-ubuntu16.04
+FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
 
 MAINTAINER Shawn Chen <kertansul@gmail.com>
 
@@ -7,13 +7,13 @@ MAINTAINER Shawn Chen <kertansul@gmail.com>
 ################
 
 # Tensorflow
-ARG TF_BRANCH=r1.4
-ARG BAZEL_VERSION=0.5.4
+ARG TF_BRANCH=v1.8.0-rc1
+ARG BAZEL_VERSION=0.11.0
 ARG TF_AVAILABLE_CPUS=32
 # nvidia Caffe
-ARG CAFFE_VERSION=caffe-0.16
+ARG CAFFE_BRANCH=caffe-0.17
 # Pytorch
-ARG PYTORCH_VERSION=torch-0.2.0
+ARG PYTORCH_TAG=v0.4.0
 
 ########################
 ### Build Tensorflow ###
@@ -23,11 +23,20 @@ ARG PYTORCH_VERSION=torch-0.2.0
 # some of them may be duplicated in basic installation, but I just leave it there
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
+        cuda-command-line-tools-9-0 \
+        cuda-cublas-dev-9-0 \
+        cuda-cudart-dev-9-0 \
+        cuda-cufft-dev-9-0 \
+        cuda-curand-dev-9-0 \
+        cuda-cusolver-dev-9-0 \
+        cuda-cusparse-dev-9-0 \
         curl \
         git \
-        golang \
+        libcudnn7=7.0.5.15-1+cuda9.0 \
+        libcudnn7-dev=7.0.5.15-1+cuda9.0 \
         libcurl3-dev \
         libfreetype6-dev \
+        libhdf5-serial-dev \
         libpng12-dev \
         libzmq3-dev \
         pkg-config \
@@ -37,21 +46,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         unzip \
         zip \
         zlib1g-dev \
-        openjdk-8-jdk \
-        openjdk-8-jre-headless \
         wget \
         && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    find /usr/local/cuda-9.0/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete && \
+    rm /usr/lib/x86_64-linux-gnu/libcudnn_static_v7.a
 
 RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
     python get-pip.py && \
     rm get-pip.py
 
 RUN pip --no-cache-dir install \
+        Pillow \
+        h5py \
         ipykernel \
         jupyter \
         matplotlib \
+        mock \
         numpy \
         scipy \
         sklearn \
@@ -59,9 +70,6 @@ RUN pip --no-cache-dir install \
         && \
     python -m ipykernel.kernelspec
 
-# fix for couldn't import dot_parser error
-RUN pip --no-cache-dir install \
-        pyparsing==2.0.1
 
 # notebook setup will be left in the last section #
 
@@ -78,45 +86,40 @@ RUN echo "build --spawn_strategy=standalone --genrule_strategy=standalone" \
 WORKDIR /
 RUN mkdir /bazel && \
     cd /bazel && \
-    wget --quiet https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
-    wget --quiet https://raw.githubusercontent.com/bazelbuild/bazel/master/LICENSE && \
+    curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -O https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
+    curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -o /bazel/LICENSE.txt https://raw.githubusercontent.com/bazelbuild/bazel/master/LICENSE && \
     chmod +x bazel-*.sh && \
-    ./bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
-    rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
+    ./bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
+# bazel cleanup
+RUN cd / && \
+    rm -f bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
+    rm -rf /bazel
 
 # Download and build TensorFlow.
-WORKDIR /
+WORKDIR /root/
 RUN git clone https://github.com/tensorflow/tensorflow.git && \
     cd tensorflow && \
     git checkout ${TF_BRANCH}
-WORKDIR /tensorflow
+WORKDIR /root/tensorflow
 
 # Configure the build for our CUDA configuration.
-ENV CI_BUILD_PYTHON=python \
-    LD_LIBRARY_PATH=/usr/local/cuda/extras/CUPTI/lib64:${LD_LIBRARY_PATH} \
-    CUDNN_INSTALL_PATH=/usr/lib/x86_64-linux-gnu \
-    PYTHON_BIN_PATH=/usr/bin/python \
-    PYTHON_LIB_PATH=/usr/local/lib/python2.7/dist-packages \
-    TF_NEED_CUDA=1 \
-    TF_CUDA_VERSION=8.0 \
-    TF_CUDA_COMPUTE_CAPABILITIES=3.0,3.5,5.2,6.0,6.1 \
-    TF_CUDNN_VERSION=6
-RUN ./configure
+ENV CI_BUILD_PYTHON python
+ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
+ENV TF_NEED_CUDA 1
+ENV TF_CUDA_COMPUTE_CAPABILITIES=3.0,3.5,5.2,6.0,6.1
+ENV TF_CUDA_VERSION=9.0
+ENV TF_CUDNN_VERSION=7
 
 # Build and Install TensorFlow.
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH} \
     tensorflow/tools/ci_build/builds/configured GPU \
-    bazel build -c opt \
-                --config=cuda \
-                --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" \
-                --jobs=${TF_AVAILABLE_CPUS} \
-                tensorflow/tools/pip_package:build_pip_package \
-                tensorflow/core/profiler:profiler && \
+    bazel build -c opt --config=cuda \
+        --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" \
+        tensorflow/tools/pip_package:build_pip_package && \
     rm /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
-    mkdir /pip_pkg && \
-    bazel-bin/tensorflow/tools/pip_package/build_pip_package /pip_pkg && \
-    pip --no-cache-dir install --upgrade /pip_pkg/tensorflow-*.whl
+    bazel-bin/tensorflow/tools/pip_package/build_pip_package /tmp/pip && \
+    pip --no-cache-dir install --upgrade /tmp/pip/tensorflow-*.whl
 # Clean up pip wheel and Bazel cache when done.
 RUN rm -rf /pip_pkg && \
     rm -rf /root/.cache/pip
@@ -124,12 +127,12 @@ RUN rm -rf /pip_pkg && \
 # Install google pprof (for Profiler visualization)
 RUN apt-get update && apt-get install -y graphviz
 RUN pip --no-cache-dir install GraphViz
-RUN cd ~ && curl -O https://storage.googleapis.com/golang/go1.6.linux-amd64.tar.gz && \
-    tar xvf go1.6.linux-amd64.tar.gz && \
+RUN cd ~ && curl -O https://dl.google.com/go/go1.10.2.linux-amd64.tar.gz && \
+    tar xvf go1.10.2.linux-amd64.tar.gz && \
     mv go /usr/local && \
-    rm go1.6.linux-amd64.tar.gz
+    rm go1.10.2.linux-amd64.tar.gz
 ENV GOPATH=/root/go
-ENV PATH=/usr/local/go:$GOPATH/bin:$PATH
+ENV PATH=/usr/local/go/bin:$GOPATH/bin:$PATH
 RUN go get github.com/google/pprof
 
 # Expose Ports for TensorBoard (6006), Ipython (8888)
@@ -153,6 +156,7 @@ RUN apt-get update && apt-get install -y \
         libprotobuf-dev \
         libsnappy-dev \
         protobuf-compiler \
+        libturbojpeg \
         && \
     rm -rf /var/lib/apt/lists/*
 
@@ -163,11 +167,12 @@ RUN cd /root/ && git clone https://github.com/NVIDIA/nccl.git && \
     make PREFIX=/usr/local install
 
 # Install Caffe 
-RUN git clone -b ${CAFFE_VERSION} --depth 1 https://github.com/NVIDIA/caffe.git /root/caffe && \
+RUN git clone -b ${CAFFE_BRANCH} --depth 1 https://github.com/NVIDIA/caffe.git /root/caffe && \
     cd /root/caffe && \
     cat python/requirements.txt | xargs -n1 pip install && \
     mkdir build && cd build && \
-    cmake -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="52 60" -DCUDA_ARCH_PTX="60" -DUSE_CUDNN=1 -USE_NCCL=On .. && \
+    cmake -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="52 60" -DCUDA_ARCH_PTX="60" \
+          -DUSE_CUDNN=1 -USE_NCCL=On -DBLAS=atlas .. && \
     make -j"$(nproc)" all && \
     make install
 
@@ -182,9 +187,14 @@ RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 #######################
 ### Install Pytorch ###
 #######################
- 
-RUN pip install http://download.pytorch.org/whl/cu80/${PYTORCH_VERSION}.post3-cp27-cp27mu-manylinux1_x86_64.whl
-RUN pip install torchvision
+
+RUN git clone --branch ${PYTORCH_TAG} --recursive https://github.com/pytorch/pytorch.git /root/pytorch 
+WORKDIR /root/pytorch
+
+# Issues with NCCL, see https://github.com/pytorch/pytorch/issues/6451
+RUN sed -i "s/WITH_SYSTEM_NCCL = True/WITH_SYSTEM_NCCL = False/" tools/setup_helpers/nccl.py
+RUN pip install -r requirements.txt
+RUN python setup.py install
 
 #############################################
 ### Other utilities and environment setup ###
