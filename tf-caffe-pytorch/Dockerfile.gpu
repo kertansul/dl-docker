@@ -13,6 +13,8 @@ ARG TF_AVAILABLE_CPUS=32
 # nvidia Caffe
 ARG CAFFE_BRANCH=caffe-0.17
 # Pytorch
+# checkout to v0.4.0, however there's an issue
+# https://github.com/pytorch/pytorch/issues/7089
 ARG PYTORCH_TAG=v0.4.0
 
 ########################
@@ -186,8 +188,11 @@ RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 ### Install Pytorch ###
 #######################
 
-RUN git clone --branch ${PYTORCH_TAG} --recursive https://github.com/pytorch/pytorch.git /root/pytorch 
+RUN git clone --branch ${PYTORCH_TAG} https://github.com/pytorch/pytorch.git /root/pytorch 
 WORKDIR /root/pytorch
+RUN sed -i "s/RLovelett\/eigen.git/eigenteam\/eigen-git-mirror.git/g" .gitmodules
+RUN git submodule init
+RUN git submodule update --recursive
 
 # Issues with NCCL, see https://github.com/pytorch/pytorch/issues/6451
 RUN sed -i "s/WITH_SYSTEM_NCCL = True/WITH_SYSTEM_NCCL = False/" tools/setup_helpers/nccl.py
