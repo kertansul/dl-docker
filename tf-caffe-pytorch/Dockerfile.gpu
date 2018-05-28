@@ -243,4 +243,9 @@ RUN cd ~/.vim/bundle/vim-colorschemes/ && cp -r colors ~/.vim/
 # install less for better git log/diff displays
 RUN apt-get install -y less
 
+# updating tensorbaord based on 
+# https://github.com/tensorflow/tensorflow/issues/18644
+
+RUN pip install -U tensorboard
+
 WORKDIR "/root"
