@@ -25,13 +25,6 @@ ARG PYTORCH_TAG=v0.4.0
 # some of them may be duplicated in basic installation, but I just leave it there
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
-        cuda-command-line-tools-9-0 \
-        cuda-cublas-dev-9-0 \
-        cuda-cudart-dev-9-0 \
-        cuda-cufft-dev-9-0 \
-        cuda-curand-dev-9-0 \
-        cuda-cusolver-dev-9-0 \
-        cuda-cusparse-dev-9-0 \
         curl \
         git \
         libcurl3-dev \
