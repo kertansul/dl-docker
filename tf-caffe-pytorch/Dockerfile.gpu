@@ -7,7 +7,7 @@ MAINTAINER Shawn Chen <kertansul@gmail.com>
 ################
 
 # Tensorflow
-ARG TF_BRANCH=v1.8.0-rc1
+ARG TF_BRANCH=v1.9.0-rc1
 ARG BAZEL_VERSION=0.11.0
 ARG TF_AVAILABLE_CPUS=32
 # nvidia Caffe
@@ -16,6 +16,7 @@ ARG CAFFE_BRANCH=caffe-0.17
 # checkout to v0.4.0, however there's an issue
 # https://github.com/pytorch/pytorch/issues/7089
 ARG PYTORCH_TAG=v0.4.0
+ARG PYTORCH_VISION_TAG=v0.2.1
 
 ########################
 ### Build Tensorflow ###
@@ -192,9 +193,15 @@ RUN sed -i "s/WITH_SYSTEM_NCCL = True/WITH_SYSTEM_NCCL = False/" tools/setup_hel
 RUN pip install -r requirements.txt
 RUN python setup.py install
 
+# Install torchvision
+RUN git clone --branch ${PYTORCH_VISION_TAG} https://github.com/pytorch/vision.git /root/pytorch_vision
+WORKDIR /root/pytorch_vision
+RUN python setup.py install
+
 #############################################
 ### Other utilities and environment setup ###
 #############################################
+WORKDIR /root
 
 # Install OpenCV
 RUN apt-get update && apt-get install -y python-opencv
@@ -235,10 +242,3 @@ RUN cd ~/.vim/bundle/vim-colorschemes/ && cp -r colors ~/.vim/
 
 # install less for better git log/diff displays
 RUN apt-get install -y less
-
-# updating tensorbaord based on 
-# https://github.com/tensorflow/tensorflow/issues/18644
-
-RUN pip install -U tensorboard
-
-WORKDIR "/root"
