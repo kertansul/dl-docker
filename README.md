@@ -8,9 +8,10 @@ This is what you get out of the box when you create a container with the provide
 * Ubuntu 16.04
 * [CUDA 9.0](https://developer.nvidia.com/cuda-toolkit) (GPU version only)
 * [cuDNN v7](https://developer.nvidia.com/cudnn) (GPU version only)
-* [Tensorflow v1.8.0-rc1](https://www.tensorflow.org/)
+* [Tensorflow v1.9.0-rc1](https://www.tensorflow.org/)
 * [NVIDIA Caffe v0.17](https://github.com/NVIDIA/nvidia-docker/wiki/NVIDIA-Caffe)
 * [PyTorch v0.4.0](http://pytorch.org/)
+* [Caffe2](https://caffe2.ai/)
 * [iPython/Jupyter Notebook](http://jupyter.org/) (including iTorch kernel)
 * [Numpy](http://www.numpy.org/), [SciPy](https://www.scipy.org/), [Pandas](http://pandas.pydata.org/), [Scikit Learn](http://scikit-learn.org/), [Matplotlib](http://matplotlib.org/)
 * A few common libraries used for deep learning
@@ -36,7 +37,7 @@ cd dl-docker
 cd tf-caffe-pytorch
 docker build -t kertansul/dl-docker:gpu -f Dockerfile.gpu .
 ```
-This will build a Docker image named `dl-docker` and tagged either `cpu` or `gpu` depending on the tag your specify. Also note that the appropriate `Dockerfile.<architecture>` has to be used.
+This will build a Docker image named `dl-docker` and tagged `gpu` depending on the tag your specify.
 
 ## Running the Docker image as a Container
 Once we've built the image, we have all the frameworks we need installed in it. We can now spin up one or more containers using this image, and you should be ready to [go deeper](http://imgur.com/gallery/BvuWRxq)
@@ -67,7 +68,7 @@ set_gpu 0,3
 ### Jupyter Notebooks
 The container comes pre-installed with iPython and iTorch Notebooks, and you can use these to work with the deep learning frameworks. If you spin up the docker container with `docker-run -p <host-port>:<container-port>` (as shown above in the [instructions](#running-the-docker-image-as-a-container)), you will have access to these ports on your host and can access them at `http://127.0.0.1:<host-port>`. The default iPython notebook uses port 8888 and Tensorboard uses port 6006. Since we expose both these ports when we run the container, we can access them both from the localhost.
 
-However, you still need to start the Notebook inside the container to be able to access it from the host. You can either do this from the container terminal by executing `jupyter notebook` or you can pass this command in directly while spinning up your container using the `docker run -it -p 8888:8888 -p 6006:6006 kertansul/dl-docker:cpu jupyter notebook` CLI. The Jupyter Notebook has both Python (for TensorFlow, Caffe, Theano, Keras, Lasagne) and iTorch (for Torch) kernels.
+However, you still need to start the Notebook inside the container to be able to access it from the host. You can either do this from the container terminal by executing `jupyter notebook --allow-root` or you can pass this command in directly while spinning up your container using the `docker run -it -p 8888:8888 -p 6006:6006 kertansul/dl-docker:gpu jupyter notebook --allow-root` CLI. The Jupyter Notebook has both Python (for TensorFlow, Caffe, Theano, Keras, Lasagne) and iTorch (for Torch) kernels.
 
 ### Data Sharing
 See [Docker container persistence](#docker-container-persistence). 
