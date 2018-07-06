@@ -2,6 +2,7 @@ FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
 
 MAINTAINER Shawn Chen <kertansul@gmail.com>
 
+
 ################
 ### Settings ###
 ################
@@ -18,12 +19,12 @@ ARG CAFFE_BRANCH=caffe-0.17
 ARG PYTORCH_TAG=v0.4.0
 ARG PYTORCH_VISION_TAG=v0.2.1
 
+
 ########################
 ### Build Tensorflow ###
 ########################
 
 # modified from https://raw.githubusercontent.com/tensorflow/tensorflow/master/tensorflow/tools/docker/Dockerfile.devel-gpu-cuda9-cudnn7
-# some of them may be duplicated in basic installation, but I just leave it there
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         curl \
@@ -64,11 +65,9 @@ RUN pip --no-cache-dir install \
         && \
     python -m ipykernel.kernelspec
 
-
 # notebook setup will be left in the last section #
 
 # Set up Bazel.
-
 # Running bazel inside a `docker build` command causes trouble, cf:
 #   https://github.com/bazelbuild/bazel/issues/134
 # The easiest solution is to set up a bazelrc file forcing --batch.
@@ -132,11 +131,13 @@ RUN go get github.com/google/pprof
 # Expose Ports for TensorBoard (6006), Ipython (8888)
 EXPOSE 6006 8888
 
+
 ##########################
 ### Build nvidia Caffe ###
 ##########################
 
 # Install dependencies for Caffe
+# some of the installations might be duplicated, but I just leave it there
 RUN apt-get update && apt-get install -y \
         cmake \
         libatlas-base-dev \
@@ -178,9 +179,10 @@ ENV PYTHONPATH=$PYCAFFE_ROOT:$PYTHONPATH \
 
 RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 
-#######################
-### Install Pytorch ###
-#######################
+
+################################
+### Install Pytorch / Caffe2 ###
+################################
 
 RUN git clone --branch ${PYTORCH_TAG} https://github.com/pytorch/pytorch.git /root/pytorch 
 WORKDIR /root/pytorch
@@ -197,6 +199,37 @@ RUN python setup.py install
 RUN git clone --branch ${PYTORCH_VISION_TAG} https://github.com/pytorch/vision.git /root/pytorch_vision
 WORKDIR /root/pytorch_vision
 RUN python setup.py install
+
+# Build Caffe2
+# some of the installations might be duplicated, but I just leave it there
+WORKDIR /root/pytorch
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    libgoogle-glog-dev \
+    libgtest-dev \
+    libiomp-dev \
+    libleveldb-dev \
+    liblmdb-dev \
+    libopencv-dev \
+    libopenmpi-dev \
+    libsnappy-dev \
+    libprotobuf-dev \
+    openmpi-bin \
+    openmpi-doc \
+    protobuf-compiler \
+    python-dev \
+    python-pip \
+    libgflags-dev
+RUN pip install \
+    future \
+    numpy \
+    protobuf
+RUN cd build && \
+    cmake .. && \
+    make -j8 install
+
 
 #############################################
 ### Other utilities and environment setup ###
