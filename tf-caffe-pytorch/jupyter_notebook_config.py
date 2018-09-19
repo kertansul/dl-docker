@@ -18,6 +18,6 @@ from notebook.auth import passwd
 c.NotebookApp.ip = '*'
 c.NotebookApp.port = 8888
 c.NotebookApp.open_browser = False
-c.MultiKernelManager.default_kernel_name = 'python2'
+c.MultiKernelManager.default_kernel_name = 'python3'
 
-# c.NotebookApp.password = passwd('ledagogogo')
+# c.NotebookApp.password = passwd('0000')

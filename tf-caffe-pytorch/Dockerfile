@@ -8,16 +8,34 @@ MAINTAINER Shawn Chen <kertansul@gmail.com>
 ################
 
 # Tensorflow
-ARG TF_BRANCH=v1.9.0-rc1
-ARG BAZEL_VERSION=0.11.0
+ARG TF_BRANCH=v1.11.0-rc1
+ARG BAZEL_VERSION=0.15.0
 ARG TF_AVAILABLE_CPUS=32
+# Keras
+ARG KERAS_APPLICATIONS=1.0.4
+ARG KERAS_PREPROCESSING=1.0.2
 # nvidia Caffe
 ARG CAFFE_BRANCH=caffe-0.17
-# Pytorch
-# checkout to v0.4.0, however there's an issue
-# https://github.com/pytorch/pytorch/issues/7089
-ARG PYTORCH_TAG=v0.4.0
+# PyTorch(Caffe2)
+ARG PYTORCH_TAG=v0.4.1
+ARG BUILD_CAFFE2=1
 ARG PYTORCH_VISION_TAG=v0.2.1
+# OpenCV
+ARG OPENCV_BRANCH=3.4.3
+ARG OPENCV_CONTRIB_BRANCH=3.4.3
+
+
+##################
+### Python 3.5 ###
+##################
+
+# For convenience, alisas (but don't sym-link) python & pip to python3 & pip3 as recommended in:
+# http://askubuntu.com/questions/351318/changing-symlink-python-to-python3-causes-problems
+RUN apt-get update && apt-get install -y --no-install-recommends python3.5 python3.5-dev python3-pip
+RUN pip3 install --no-cache-dir --upgrade pip setuptools
+RUN echo "alias python='python3'" >> /root/.bash_aliases
+RUN echo "alias pip='pip3'" >> /root/.bash_aliases
+RUN /bin/bash -c "source /root/.bash_aliases"
 
 
 ########################
@@ -29,13 +47,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         curl \
         git \
+        libnccl2=2.2.13-1+cuda9.0 \
+        libnccl-dev=2.2.13-1+cuda9.0 \
         libcurl3-dev \
         libfreetype6-dev \
         libhdf5-serial-dev \
         libpng12-dev \
         libzmq3-dev \
         pkg-config \
-        python-dev \
+        python3.5-dev \
         rsync \
         software-properties-common \
         unzip \
@@ -47,15 +67,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     find /usr/local/cuda-9.0/lib64/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete && \
     rm /usr/lib/x86_64-linux-gnu/libcudnn_static_v7.a
 
+RUN apt-get update && \
+        apt-get install nvinfer-runtime-trt-repo-ubuntu1604-4.0.1-ga-cuda9.0 && \
+        apt-get update && \
+        apt-get install libnvinfer4=4.1.2-1+cuda9.0 && \
+        apt-get install libnvinfer-dev=4.1.2-1+cuda9.0
+
+# Link NCCL libray and header where the build script expects them.
+RUN mkdir /usr/local/cuda-9.0/lib &&  \
+    ln -s /usr/lib/x86_64-linux-gnu/libnccl.so.2 /usr/local/cuda/lib/libnccl.so.2 && \
+    ln -s /usr/include/nccl.h /usr/local/cuda/include/nccl.h
+
 RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
-    python get-pip.py && \
+    python3 get-pip.py && \
     rm get-pip.py
 
-RUN pip --no-cache-dir install \
+RUN pip3 --no-cache-dir install \
         Pillow \
         h5py \
         ipykernel \
         jupyter \
+        keras_applications==$KERAS_APPLICATIONS \
+        keras_preprocessing==$KERAS_PREPROCESSING \
         matplotlib \
         mock \
         numpy \
@@ -63,7 +96,10 @@ RUN pip --no-cache-dir install \
         sklearn \
         pandas \
         && \
-    python -m ipykernel.kernelspec
+    python3 -m ipykernel.kernelspec
+
+# link python to python3
+RUN ln -s -f /usr/bin/python3 /usr/bin/python
 
 # notebook setup will be left in the last section #
 
@@ -96,7 +132,7 @@ RUN git clone https://github.com/tensorflow/tensorflow.git && \
 WORKDIR /root/tensorflow
 
 # Configure the build for our CUDA configuration.
-ENV CI_BUILD_PYTHON python
+ENV CI_BUILD_PYTHON python3
 ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
 ENV TF_NEED_CUDA 1
 ENV TF_CUDA_COMPUTE_CAPABILITIES=3.0,3.5,5.2,6.0,6.1
@@ -111,15 +147,15 @@ RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/lib
         --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" \
         tensorflow/tools/pip_package:build_pip_package && \
     rm /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
-    bazel-bin/tensorflow/tools/pip_package/build_pip_package /tmp/pip && \
-    pip --no-cache-dir install --upgrade /tmp/pip/tensorflow-*.whl
+    bazel-bin/tensorflow/tools/pip_package/build_pip_package /tmp/pip3 && \
+    pip3 --no-cache-dir install --upgrade /tmp/pip3/tensorflow-*.whl
 # Clean up pip wheel and Bazel cache when done.
 RUN rm -rf /pip_pkg && \
     rm -rf /root/.cache/pip
 
 # Install google pprof (for Profiler visualization)
 RUN apt-get update && apt-get install -y graphviz
-RUN pip --no-cache-dir install GraphViz
+RUN pip3 --no-cache-dir install GraphViz
 RUN cd ~ && curl -O https://dl.google.com/go/go1.10.2.linux-amd64.tar.gz && \
     tar xvf go1.10.2.linux-amd64.tar.gz && \
     mv go /usr/local && \
@@ -155,19 +191,13 @@ RUN apt-get update && apt-get install -y \
         && \
     rm -rf /var/lib/apt/lists/*
 
-# Install nvidia NCCL to support multiple GPU
-RUN cd /root/ && git clone https://github.com/NVIDIA/nccl.git && \
-    cd nccl && \
-    make CUDA_HOME=/usr/local/cuda test && \
-    make PREFIX=/usr/local install
-
 # Install Caffe 
 RUN git clone -b ${CAFFE_BRANCH} --depth 1 https://github.com/NVIDIA/caffe.git /root/caffe && \
     cd /root/caffe && \
-    cat python/requirements.txt | xargs -n1 pip install && \
+    cat python/requirements.txt | xargs -n1 pip3 install && \
     mkdir build && cd build && \
     cmake -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="52 60" -DCUDA_ARCH_PTX="60" \
-          -DUSE_CUDNN=1 -USE_NCCL=On -DBLAS=atlas .. && \
+          -DUSE_CUDNN=1 -USE_NCCL=On -DBLAS=atlas -Dpython_version=3 .. && \
     make -j"$(nproc)" all && \
     make install
 
@@ -184,77 +214,74 @@ RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 ### Install Pytorch / Caffe2 ###
 ################################
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        cmake \
+        git \
+        libgoogle-glog-dev \
+        libgtest-dev \
+        libiomp-dev \
+        libleveldb-dev \
+        liblmdb-dev \
+        libopencv-dev \
+        libopenmpi-dev \
+        libsnappy-dev \
+        libprotobuf-dev \
+        libgflags-dev \ 
+        openmpi-bin \
+        openmpi-doc \
+        protobuf-compiler \
+        python3.5-dev \
+        python3-pip                          
+RUN pip3 install --user \
+        future \
+        numpy \
+        pyyaml \
+        protobuf
 RUN git clone --branch ${PYTORCH_TAG} https://github.com/pytorch/pytorch.git /root/pytorch 
 WORKDIR /root/pytorch
-RUN sed -i "s/RLovelett\/eigen.git/eigenteam\/eigen-git-mirror.git/g" .gitmodules
-RUN git submodule init
-RUN git submodule update --recursive
-
-# Issues with NCCL, see https://github.com/pytorch/pytorch/issues/6451
-RUN sed -i "s/WITH_SYSTEM_NCCL = True/WITH_SYSTEM_NCCL = False/" tools/setup_helpers/nccl.py
-RUN pip install -r requirements.txt
-RUN python setup.py install
+RUN git submodule update --init --recursive
+RUN ln -s -f /usr/bin/python3 /usr/bin/python
+RUN FULL_CAFFE2=$BUILD_CAFFE2 python3 setup.py install
 
 # Install torchvision
 RUN git clone --branch ${PYTORCH_VISION_TAG} https://github.com/pytorch/vision.git /root/pytorch_vision
 WORKDIR /root/pytorch_vision
-RUN python setup.py install
+RUN python3 setup.py install
 
-# Build Caffe2
-# some of the installations might be duplicated, but I just leave it there
-WORKDIR /root/pytorch
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    cmake \
-    git \
-    libgoogle-glog-dev \
-    libgtest-dev \
-    libiomp-dev \
-    libleveldb-dev \
-    liblmdb-dev \
-    libopencv-dev \
-    libopenmpi-dev \
-    libsnappy-dev \
-    libprotobuf-dev \
-    openmpi-bin \
-    openmpi-doc \
-    protobuf-compiler \
-    python-dev \
-    python-pip \
-    libgflags-dev
-RUN pip install \
-    future \
-    numpy \
-    protobuf
-RUN cd build && \
-    cmake .. && \
-    make -j8 install
-
-
-#############################################
-### Other utilities and environment setup ###
-#############################################
+##############################################
+#### Other utilities and environment setup ###
+##############################################
 WORKDIR /root
 
-# Install OpenCV
-RUN apt-get update && apt-get install -y python-opencv
+# Install OpenCV3
+RUN git clone https://github.com/opencv/opencv.git
+RUN cd opencv && git checkout $OPENCV_BRANCH
+RUN git clone https://github.com/opencv/opencv_contrib.git
+RUN cd opencv_contrib && git checkout $OPENCV_CONTRIB_BRANCH
+WORKDIR /root/opencv
+RUN mkdir build
+RUN cd build && \
+		cmake -D CMAKE_BUILD_TYPE=RELEASE \
+        -D CMAKE_INSTALL_PREFIX=/usr/local \
+        -D INSTALL_C_EXAMPLES=ON \
+        -D INSTALL_PYTHON_EXAMPLES=ON \
+        -D WITH_TBB=ON \
+        -D WITH_V4L=ON \
+        -D WITH_QT=ON \
+        -D WITH_OPENGL=ON \
+        -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules \
+        -D BUILD_EXAMPLES=ON ..
+RUN cd build && \
+		make -j8 && make install
+WORKDIR /root
+
 # Install mpld3 for interacting charts on ipython notebook
-RUN pip --no-cache-dir install mpld3
+RUN pip3 --no-cache-dir install mpld3
 # Install scikit-image and upgrade pandas
-RUN pip --no-cache-dir install scikit-image
-RUN pip --no-cache-dir install -U numpy
-RUN pip --no-cache-dir install -U pandas
-
-# Install pip3 and useful dependencies
-RUN apt-get update && apt-get install -y python3-pip
-RUN pip3 --no-cache-dir install numpy \
-                                pandas
-RUN pip3 --no-cache-dir install scikit-image \
-                                matplotlib
-
-# Install Python3 for notebook
-RUN python3 -m pip install ipykernel
-RUN python3 -m ipykernel install --user
+RUN pip3 --no-cache-dir install scikit-image
+RUN pip3 --no-cache-dir install -U numpy
+RUN pip3 --no-cache-dir install -U pandas
 
 # Set up notebook config
 COPY jupyter_notebook_config.py /root/.jupyter/

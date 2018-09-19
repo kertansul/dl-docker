@@ -8,9 +8,9 @@ This is what you get out of the box when you create a container with the provide
 * Ubuntu 16.04
 * [CUDA 9.0](https://developer.nvidia.com/cuda-toolkit) (GPU version only)
 * [cuDNN v7](https://developer.nvidia.com/cudnn) (GPU version only)
-* [Tensorflow v1.9.0-rc1](https://www.tensorflow.org/)
+* [Tensorflow v1.11.0-rc1](https://www.tensorflow.org/)
 * [NVIDIA Caffe v0.17](https://github.com/NVIDIA/nvidia-docker/wiki/NVIDIA-Caffe)
-* [PyTorch v0.4.0](http://pytorch.org/)
+* [PyTorch v0.4.1](http://pytorch.org/)
 * [Caffe2](https://caffe2.ai/)
 * [iPython/Jupyter Notebook](http://jupyter.org/) (including iTorch kernel)
 * [Numpy](http://www.numpy.org/), [SciPy](https://www.scipy.org/), [Pandas](http://pandas.pydata.org/), [Scikit Learn](http://scikit-learn.org/), [Matplotlib](http://matplotlib.org/)
@@ -56,7 +56,6 @@ Note the use of `nvidia-docker` rather than just `docker`
 |`kertansul/dl-docker:cpu`   | This the image that you want to run. The format is `image:tag`. In our case, we use the image `dl-docker` and tag `gpu` or `cpu` to spin up the appropriate image |
 |`bash`       | This provides the default command when the container is started. Even if this was not provided, bash is the default command and just starts a Bash session. You can modify this to be whatever you'd like to be executed when your container starts. For example, you can execute `docker run -it -p 8888:8888 -p 6006:6006 kertansul/dl-docker:cpu jupyter notebook`. This will execute the command `jupyter notebook` and starts your Jupyter Notebook for you when the container starts
 
-![#f03c15](https://placehold.it/15/f03c15/000000?text=+) **The container will only recognize GPU0 by default**
 
 To utilize other GPUs, use the pre-defined script function `set_gpu`.
 For example, if you want to utilize GPU0 and GPU3, issue
