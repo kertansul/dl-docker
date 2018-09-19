@@ -255,25 +255,20 @@ RUN python3 setup.py install
 WORKDIR /root
 
 # Install OpenCV3
-RUN git clone https://github.com/opencv/opencv.git
-RUN cd opencv && git checkout $OPENCV_BRANCH
-RUN git clone https://github.com/opencv/opencv_contrib.git
-RUN cd opencv_contrib && git checkout $OPENCV_CONTRIB_BRANCH
+RUN cd /root && git clone https://github.com/opencv/opencv.git
+RUN cd /root/opencv && git checkout $OPENCV_BRANCH
+RUN cd /root && git clone https://github.com/opencv/opencv_contrib.git
+RUN cd /root/opencv_contrib && git checkout $OPENCV_CONTRIB_BRANCH
 WORKDIR /root/opencv
 RUN mkdir build
 RUN cd build && \
 		cmake -D CMAKE_BUILD_TYPE=RELEASE \
         -D CMAKE_INSTALL_PREFIX=/usr/local \
-        -D INSTALL_C_EXAMPLES=ON \
         -D INSTALL_PYTHON_EXAMPLES=ON \
-        -D WITH_TBB=ON \
-        -D WITH_V4L=ON \
-        -D WITH_QT=ON \
-        -D WITH_OPENGL=ON \
         -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules \
-        -D BUILD_EXAMPLES=ON ..
-RUN cd build && \
-		make -j8 && make install
+        -D BUILD_opencv_python3=ON \
+        -D BUILD_EXAMPLES=ON .. && \
+        make -j8 && make install && ldconfig
 WORKDIR /root
 
 # Install mpld3 for interacting charts on ipython notebook
