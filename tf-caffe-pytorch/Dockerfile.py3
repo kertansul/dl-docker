@@ -144,6 +144,7 @@ RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/lib
     tensorflow/tools/ci_build/builds/configured GPU \
     bazel build -c opt --config=cuda \
         --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" \
+        --jobs=${TF_AVAILABLE_CPUS} \
         tensorflow/tools/pip_package:build_pip_package && \
     rm /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
     bazel-bin/tensorflow/tools/pip_package/build_pip_package /tmp/pip3 && \
