@@ -25,7 +25,7 @@ ARG CAFFE_BRANCH=caffe-0.17
 ###############
 ### OpenCV3 ###
 ###############
-
+RUN apt-get update && apt-get install -y python-pip
 RUN pip install opencv-python
 
 
