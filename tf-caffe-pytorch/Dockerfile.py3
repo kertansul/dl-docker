@@ -257,7 +257,7 @@ RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 WORKDIR /root
 
 # Set up notebook config
-COPY jupyter_notebook_config.py /root/.jupyter/
+COPY jupyter_notebook_config.py3 /root/.jupyter/jupyter_notebook_config.py
 
 # Jupyter has issues with being run directly: https://github.com/ipython/ipython/issues/7062
 COPY run_jupyter.sh /root/

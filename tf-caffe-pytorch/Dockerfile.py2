@@ -263,7 +263,7 @@ RUN python3 -m pip install ipykernel
 RUN python3 -m ipykernel install --user
 
 # Set up notebook config
-COPY jupyter_notebook_config.py /root/.jupyter/
+COPY jupyter_notebook_config.py2 /root/.jupyter/jupyter_notebook_config.py
 
 # Jupyter has issues with being run directly: https://github.com/ipython/ipython/issues/7062
 COPY run_jupyter.sh /root/
