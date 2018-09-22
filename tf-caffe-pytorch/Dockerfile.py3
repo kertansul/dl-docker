@@ -234,8 +234,7 @@ RUN apt-get update && apt-get install -y \
 # Install Caffe 
 RUN git clone -b ${CAFFE_BRANCH} --depth 1 https://github.com/NVIDIA/caffe.git /root/caffe && \
     cd /root/caffe && \
-    cat python/requirements.txt | xargs -n1 pip3 install
-RUN cd /root/caffe && \
+    cat python/requirements.txt | xargs -n1 pip3 install && \
     mkdir build && cd build && \
     cmake -DCUDA_ARCH_NAME="Manual" -DCUDA_ARCH_BIN="52 60" -DCUDA_ARCH_PTX="60" \
           -DUSE_CUDNN=1 -USE_NCCL=On -DBLAS=atlas -Dpython_version=3 .. && \
