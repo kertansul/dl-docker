@@ -108,6 +108,9 @@ function color_my_prompt {
 }
 color_my_prompt
 
+# locale
+export LANG=C.UTF-8
+
 # for fast setting GPU id
 # use command "set_gpu 0" to switch to gpu 0 only
 function set_gpu() {
