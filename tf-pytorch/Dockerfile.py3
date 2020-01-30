@@ -75,4 +75,4 @@ RUN cd ~/.vim/bundle/vim-colorschemes/ && cp -r colors ~/.vim/
 RUN apt-get install -y less
 
 # Install Packages
-RUN pip3 install jupyter scipy matplotlib pandas
+RUN pip3 install numpy jupyter scipy matplotlib pandas scikit-learn

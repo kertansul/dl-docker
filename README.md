@@ -6,12 +6,10 @@ If you are not familiar with Docker, but would still like an all-in-one solution
 ## Specs
 This is what you get out of the box when you create a container with the provided image/Dockerfile:
 * Ubuntu 16.04
-* [CUDA 9.0](https://developer.nvidia.com/cuda-toolkit) (GPU version only)
+* [CUDA 10.2](https://developer.nvidia.com/cuda-toolkit) (GPU version only)
 * [cuDNN v7](https://developer.nvidia.com/cudnn) (GPU version only)
-* [Tensorflow v1.11.0-rc1](https://www.tensorflow.org/)
-* [NVIDIA Caffe v0.17](https://github.com/NVIDIA/nvidia-docker/wiki/NVIDIA-Caffe)
-* [PyTorch v0.4.1](http://pytorch.org/)
-* [Caffe2](https://caffe2.ai/)
+* [Tensorflow v2.0.0](https://www.tensorflow.org/)
+* [PyTorch v1.2.0](http://pytorch.org/)
 * [iPython/Jupyter Notebook](http://jupyter.org/) (including iTorch kernel)
 * [Numpy](http://www.numpy.org/), [SciPy](https://www.scipy.org/), [Pandas](http://pandas.pydata.org/), [Scikit Learn](http://scikit-learn.org/), [Matplotlib](http://matplotlib.org/)
 * A few common libraries used for deep learning
@@ -38,19 +36,9 @@ cd tf-caffe-pytorch
 nvidia-docker build -t kertansul/dl-docker:py3 -f Dockerfile.py3 .
 ```
 
-**Python2 Version**
-```bash
-cd tf-caffe-pytorch
-nvidia-docker build -t kertansul/dl-docker:py2 -f Dockerfile.py2 .
-```
-This will build a Docker image named `dl-docker` and tagged `pyX` depending on the tag your specify.
-
-## Running the Docker image as a Container
-Once we've built the image, we have all the frameworks we need installed in it. We can now spin up one or more containers using this image, and you should be ready to [go deeper](http://imgur.com/gallery/BvuWRxq)
-	
 **Python3 Version**
 ```bash
-nvidia-docker run -it -p 8888:8888 -p 6006:6006 -v /sharedfolder:/root/sharedfolder kertansul/dl-docker:py3 bash
+docker run -it -p 8888:8888 -p 6006:6006 -v /sharedfolder:/root/sharedfolder kertansul/dl-docker:py3 bash
 ```
 Note the use of `nvidia-docker` rather than just `docker`
 
